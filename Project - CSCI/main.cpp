@@ -6,6 +6,7 @@ Student Names:
 */
 
 #include<windows.h>
+#include <time.h>
 
 #include "Dependencies/glew/glew.h"
 #include "Dependencies/GLFW/glfw3.h"
@@ -399,18 +400,41 @@ void loadSkybox() {
 	textureSkybox.loadSkybox(earth_faces);
 }
 
-
-unsigned int amountAsteroids = 1000;
+// Make sure to match this with the shader! Else run into issues.
+unsigned int amountAsteroids = 500;
 glm::mat4* modelMatrices = new glm::mat4[amountAsteroids];
 
-void loadAsteroids() {
-	unsigned int buffer;
-	glGenBuffers(1, &buffer);
-	glBindBuffer(GL_ARRAY_BUFFER, buffer);
-	glBufferData(GL_ARRAY_BUFFER, amountAsteroids * sizeof(glm::mat4), &modelMatrices[0], GL_STATIC_DRAW);
+float offset = 2.5f;
+float radius = 10.0;
 
+void asteroidGenerator() {
+	srand(glfwGetTime()); // initialize random seed	
+	for (unsigned int i = 0; i < amountAsteroids; i++)
+	{
+		glm::mat4 model = glm::mat4(1.0f);
+		// 1. translation: displace along circle with 'radius' in range [-offset, offset]
+		float angle = (float)i / (float)amountAsteroids * 360.0f;
+		float displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
+		float x = sin(angle) * radius + displacement;
+		displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
+		float y = displacement * 0.4f; // keep height of field smaller compared to width of x and z
+		displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
+		float z = cos(angle) * radius + displacement;
+		model = glm::translate(model, glm::vec3(x, y, z));
 
+		// 2. scale: scale between 0.05 and 0.25f
+		float scale = (rand() % 20) / 100.0f + 0.05;
+		model = glm::scale(model, glm::vec3(scale));
+
+		// 3. rotation: add random rotation around a (semi)randomly picked rotation axis vector
+		float rotAngle = (rand() % 360);
+		model = glm::rotate(model, rotAngle, glm::vec3(0.4f, 0.6f, 0.8f));
+
+		// 4. now add to list of matrices
+		modelMatrices[i] = model;
+	}
 }
+
 
 void sendDataToOpenGL()
 {
@@ -420,6 +444,7 @@ void sendDataToOpenGL()
 	loadPlanet();
 	loadCraft();
 	loadSkybox();
+	asteroidGenerator();
 }
 
 
@@ -449,6 +474,7 @@ void matrix(std::string object) {
 	glm::mat4 scaling = glm::mat4(1.0f);
 	glm::mat4 transform = glm::mat4(1.0f);
 	glm::mat4 projection = glm::mat4(1.0f);
+	glm::mat4 model = glm::mat4(1.0f);
 
 	glm::mat4 view = glm::mat4(1.0f);
 	float self_rotate = (float) glfwGetTime() * 0.2;
@@ -482,6 +508,10 @@ void matrix(std::string object) {
 		view = glm::mat4(glm::mat3(view)); // get rid of last row and column
 		// can reuse projection matrix
 	}
+	else if (object == "Asteroids") {
+
+	}
+
 	else {
 		// pass: do nothing, if you want another object, make an else if statement
 	}
@@ -493,8 +523,12 @@ void matrix(std::string object) {
 		skyboxShader.setMat4("view", view);
 		skyboxShader.setMat4("projection", projection);
 	}
+	else if (object == "Asteroids") {
+		asteroidShader.setMat4("view", view);
+		asteroidShader.setMat4("projection", projection);
+	}
 	else {
-		// Send the matrices to the shader
+		//// Send the matrices to the shader
 		shader.setMat4("rotationMatrix", rotation);
 		shader.setMat4("scalingMatrix", scaling);
 		shader.setMat4("transformMatrix", transform);
@@ -530,17 +564,27 @@ void paintGL(void)
 	shader.setInt("myTextureSampler1", 1);
 	glDrawElements(GL_TRIANGLES, Planet.indices.size(), GL_UNSIGNED_INT, 0);
 
+
 	matrix("Craft");
 	glBindVertexArray(vaoCraft);
 	textureCraft.bind(0);
 	shader.setInt("myTextureSampler0", 0);
 	glDrawElements(GL_TRIANGLES, Craft.indices.size(), GL_UNSIGNED_INT, 0);
 
+
 	// Now: draw asteroids
 	asteroidShader.use();
-	for (int i = 0; i < 100; i++) {
-
+	glBindVertexArray(vaoRock);
+	
+	matrix("Asteroids");
+	for (int i = 0; i < amountAsteroids; i++) {
+		asteroidShader.setMat4(("model[" + std::to_string(i) + "]"), modelMatrices[i]);
 	}
+	
+	textureRock.bind(0);
+	asteroidShader.setInt("textureAsteroid", 0);
+	glDrawElementsInstanced(GL_TRIANGLES, Rock.indices.size(), GL_UNSIGNED_INT, 0, amountAsteroids);
+
 
 
 
@@ -632,9 +676,19 @@ int main(int argc, char* argv[])
     
     // load textures once
 
+	std::cout << Rock.indices.size() << std::endl; // 576
+	std::cout << Rock.vertices.size() << std::endl; // 165
+
+	// Variables to create periodic event for FPS displaying
+	double prevTime = 0.0;
+	double crntTime = 0.0;
+	double timeDiff;
+	// Keeps track of the amount of frames in timeDiff
+	unsigned int counter = 0;
 
 	while (!glfwWindowShouldClose(window)) {
-        
+
+		clock_t tStart = clock();
 		/* Render here */
 		paintGL();
 
@@ -643,6 +697,9 @@ int main(int argc, char* argv[])
 
 		/* Poll for and process events */
 		glfwPollEvents();
+
+
+		printf("Time taken: %.2fs\n", (double)(clock() - tStart) / CLOCKS_PER_SEC);
 	}
 
 	glfwTerminate();
@@ -650,33 +707,3 @@ int main(int argc, char* argv[])
 	return 0;
 }
 
-float radius = 50.0;
-float offset = 2.5f;
-
-void asteroidGenerator() {
-	srand(glfwGetTime()); // initialize random seed	
-	for (unsigned int i = 0; i < amountAsteroids; i++)
-	{
-		glm::mat4 model = glm::mat4(1.0f);
-		// 1. translation: displace along circle with 'radius' in range [-offset, offset]
-		float angle = (float)i / (float)amountAsteroids * 360.0f;
-		float displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
-		float x = sin(angle) * radius + displacement;
-		displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
-		float y = displacement * 0.4f; // keep height of field smaller compared to width of x and z
-		displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
-		float z = cos(angle) * radius + displacement;
-		model = glm::translate(model, glm::vec3(x, y, z));
-
-		// 2. scale: scale between 0.05 and 0.25f
-		float scale = (rand() % 20) / 100.0f + 0.05;
-		model = glm::scale(model, glm::vec3(scale));
-
-		// 3. rotation: add random rotation around a (semi)randomly picked rotation axis vector
-		float rotAngle = (rand() % 360);
-		model = glm::rotate(model, rotAngle, glm::vec3(0.4f, 0.6f, 0.8f));
-
-		// 4. now add to list of matrices
-		modelMatrices[i] = model;
-	}
-}

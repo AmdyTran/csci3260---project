@@ -11,8 +11,6 @@ uniform mat4 transformMatrix;
 uniform mat4 projectionMatrix;
 uniform mat4 viewMatrix;
 
-
-
 out vec2 UV;
 
 void main()

@@ -2,9 +2,9 @@
 
 out vec4 Color;
 
-in vec3 UV;
+in vec2 UV;
 
-uniform samplerCube textureAsteroid;
+uniform sampler2D textureAsteroid;
 
 void main()
 {    
