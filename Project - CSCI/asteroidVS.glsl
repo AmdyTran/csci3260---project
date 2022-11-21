@@ -8,11 +8,13 @@ out vec2 UV;
 
 uniform mat4 projection;
 uniform mat4 view;
+uniform mat4 transform;
+uniform mat4 rotation;
 uniform mat4 model[500];
 
 void main()
 {
-    gl_Position = projection * view * model[gl_InstanceID] * vec4(position, 1.0); 
+    gl_Position = projection * view * transform * rotation * model[gl_InstanceID] * vec4(position, 1.0); 
     UV = vertexUV;
 }
 

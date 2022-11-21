@@ -406,9 +406,10 @@ glm::mat4* modelMatrices = new glm::mat4[amountAsteroids];
 
 float offset = 2.5f;
 float radius = 10.0;
+float startingTime = glfwGetTime();
 
 void asteroidGenerator() {
-	srand(glfwGetTime()); // initialize random seed	
+	srand(startingTime);
 	for (unsigned int i = 0; i < amountAsteroids; i++)
 	{
 		glm::mat4 model = glm::mat4(1.0f);
@@ -427,8 +428,8 @@ void asteroidGenerator() {
 		model = glm::scale(model, glm::vec3(scale));
 
 		// 3. rotation: add random rotation around a (semi)randomly picked rotation axis vector
-		float rotAngle = (rand() % 360);
-		model = glm::rotate(model, rotAngle, glm::vec3(0.4f, 0.6f, 0.8f));
+		float rotAngle = (rand() % 360) + (float) glfwGetTime()*-0.7;
+		model = glm::rotate(model, rotAngle , glm::vec3(0.4f, 0.6f, 0.8f));
 
 		// 4. now add to list of matrices
 		modelMatrices[i] = model;
@@ -509,7 +510,8 @@ void matrix(std::string object) {
 		// can reuse projection matrix
 	}
 	else if (object == "Asteroids") {
-
+		transform = glm::translate(glm::mat4(1.0f), glm::vec3(3.0f, 0.0f, 100.0f));
+		rotation = glm::rotate(glm::mat4(1.0f), self_rotate, glm::vec3(0.0f, 1.0f, 0.0f));
 	}
 
 	else {
@@ -526,6 +528,8 @@ void matrix(std::string object) {
 	else if (object == "Asteroids") {
 		asteroidShader.setMat4("view", view);
 		asteroidShader.setMat4("projection", projection);
+		asteroidShader.setMat4("transform", transform);
+		asteroidShader.setMat4("rotation", rotation);
 	}
 	else {
 		//// Send the matrices to the shader
@@ -572,11 +576,12 @@ void paintGL(void)
 	glDrawElements(GL_TRIANGLES, Craft.indices.size(), GL_UNSIGNED_INT, 0);
 
 
-	// Now: draw asteroids
+	// Now: draw asteroids, we use the asteroid shader for it to keep code seperate.
 	asteroidShader.use();
 	glBindVertexArray(vaoRock);
 	
 	matrix("Asteroids");
+	asteroidGenerator();
 	for (int i = 0; i < amountAsteroids; i++) {
 		asteroidShader.setMat4(("model[" + std::to_string(i) + "]"), modelMatrices[i]);
 	}
@@ -584,8 +589,6 @@ void paintGL(void)
 	textureRock.bind(0);
 	asteroidShader.setInt("textureAsteroid", 0);
 	glDrawElementsInstanced(GL_TRIANGLES, Rock.indices.size(), GL_UNSIGNED_INT, 0, amountAsteroids);
-
-
 
 
 	// Now: draw skybox, make sure to keep it last
