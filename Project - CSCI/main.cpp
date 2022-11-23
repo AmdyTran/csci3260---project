@@ -5,7 +5,7 @@ Student ID:
 Student Names: 
 */
 
-#include<windows.h>
+//#include<windows.h>
 #include <time.h>
 
 #include "Dependencies/glew/glew.h"
@@ -30,6 +30,10 @@ const int SCR_WIDTH = 800;
 const int SCR_HEIGHT = 600;
 
 GLint programID;
+
+// global vars
+float ship_x = 0, ship_y = 0, ship_z = 0;
+float camX, camY, camZ;
 
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
 
@@ -160,6 +164,7 @@ Model loadOBJ(const char* objPath)
 
 float yaw = -90.0f;
 float pitch = 17.0f;
+//float pitch = 0.0f;
 
 double xpos = 400, ypos = 300;
 
@@ -452,6 +457,7 @@ void sendDataToOpenGL()
 Shader shader;
 Shader skyboxShader;
 Shader asteroidShader;
+Shader shipShader;
 
 void initializedGL(void) //run only once
 {
@@ -464,6 +470,7 @@ void initializedGL(void) //run only once
     shader.setupShader("./VertexShaderCode.glsl", "./FragmentShaderCode.glsl");
 	skyboxShader.setupShader("./skyboxVS.glsl", "./skyboxFS.glsl");
 	asteroidShader.setupShader("./asteroidVS.glsl", "./asteroidFS.glsl");
+    shipShader.setupShader("./shipVS.glsl", "./shipFS.glsl");
 
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_TEXTURE_2D);
@@ -476,24 +483,28 @@ void matrix(std::string object) {
 	glm::mat4 transform = glm::mat4(1.0f);
 	glm::mat4 projection = glm::mat4(1.0f);
 	glm::mat4 model = glm::mat4(1.0f);
+    glm::mat4 tempTrans = glm::mat4(1.0f);
 
 	glm::mat4 view = glm::mat4(1.0f);
 	float self_rotate = (float) glfwGetTime() * 0.2;
 
 	// Standard stuff for moving camera and projection etc
-	float camX = 25.0 * sin(cos(glm::radians(yaw)) * cos(glm::radians(pitch)));
-	float camY = 25.0 * sin(glm::radians(pitch));
-	float camZ = -25.0 * cos(glm::radians(pitch)) * sin(glm::radians(yaw));
-
-	projection = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 200.0f);
-	view = glm::lookAt(
-		glm::vec3(camX, camY, camZ), //cam
-		glm::vec3(0.0f, 0.0f, 0.0f), //look
-		glm::vec3(0, 1, 0)
-	);
+    
+    camX = - 25.0 * sin(cos(glm::radians(yaw)) * cos(glm::radians(pitch)));
+    camY = - 25.0 * sin(glm::radians(pitch));
+    camZ = 25.0 * cos(glm::radians(pitch)) * sin(glm::radians(yaw));
+    
+    // for camera:
+    glm::mat4 sTransform = glm::mat4(1.0f);
+    glm::mat4 sRotation = glm::mat4(1.0f);
 
 	if (object == "Spacecraft") {
 		scaling = glm::scale(glm::mat4(1.0f), glm::vec3(0.01f, 0.01f, 0.01f));
+        transform = glm::translate(glm::mat4(1.0f), glm::vec3(ship_x, ship_y, ship_z));
+        rotation = glm::rotate(glm::mat4(1.0f), -0.07f * camX, glm::vec3(0.0f, 1.0f, 0.0f));
+        tempTrans = glm::translate(glm::mat4(1.0f), glm::vec3(-ship_x, -ship_y, -ship_z));
+        sTransform = transform;
+        sRotation = rotation;
 	}
 	else if (object == "Craft") {
 		scaling = glm::scale(glm::mat4(1.0f), glm::vec3(0.5f, 0.5f, 0.5f));
@@ -517,8 +528,27 @@ void matrix(std::string object) {
 	else {
 		// pass: do nothing, if you want another object, make an else if statement
 	}
+    
+    //???
+    glm::vec4 temp2 = sTransform * glm::vec4(1.0f,1.0f,1.0f,1.0f);
+    glm::vec4 temp3 = sTransform * sRotation * temp2;
 
 
+    // projection and view matrices
+    projection = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 200.0f);
+//    view = glm::lookAt(
+//        glm::vec3(camX + ship_x, camY + 10 + ship_y, camZ + 5 + ship_z), //cam
+//        glm::vec3(ship_x, ship_y, ship_z), //look
+//        glm::vec3(0, 1, 0)
+//    );
+    
+    view = glm::lookAt(
+            glm::vec3(temp2.x - 1, temp2.y + 2, temp2.z - 15), //cam
+            glm::vec3(0,0,0), //look
+            glm::vec3(0, 1, 0)
+        );
+    //???????oops
+    
 
 	// Now send it to shader, but if it s a skybox we want to send it to skyboxShader
 	if (object == "Skybox") {
@@ -531,6 +561,14 @@ void matrix(std::string object) {
 		asteroidShader.setMat4("transform", transform);
 		asteroidShader.setMat4("rotation", rotation);
 	}
+    else if (object == "Spacecraft"){
+        shipShader.setMat4("view", view);
+        shipShader.setMat4("projection", projection);
+        shipShader.setMat4("transform", transform);
+        shipShader.setMat4("rotation", rotation);
+        shipShader.setMat4("scaling", scaling);
+        shipShader.setMat4("invTrans", tempTrans);
+    }
 	else {
 		//// Send the matrices to the shader
 		shader.setMat4("rotationMatrix", rotation);
@@ -550,16 +588,19 @@ void paintGL(void)
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	unsigned int slot = 0;
 
-	// Now we use main shader
+	// spacecraft shader
 
-	shader.use();
-
+    shipShader.use();
 	matrix("Spacecraft");
 	glBindVertexArray(vaoSpacecraft);
 	textureSpacecraft.bind(0);
+    shipShader.setInt("textureSpacecraft", 0);
 	shader.setInt("myTextureSampler0", 0);
 	glDrawElements(GL_TRIANGLES, Spacecraft.indices.size(), GL_UNSIGNED_INT, 0);
 
+    // main shader
+    shader.use();
+    
 	matrix("Planet");
 	glBindVertexArray(vaoPlanet);
 	texturePlanet.bind(0);
@@ -636,7 +677,30 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {	
-	
+    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
+        glfwSetWindowShouldClose(window, true);
+    }
+    
+    if (key == GLFW_KEY_UP && action == GLFW_PRESS) {
+        ship_z += 1;
+    }
+    if (key == GLFW_KEY_DOWN && action == GLFW_PRESS) {
+        ship_z -= 1;
+    }
+    if (key == GLFW_KEY_RIGHT && action == GLFW_PRESS) {
+        ship_x -= 1;
+    }
+    if (key == GLFW_KEY_LEFT && action == GLFW_PRESS) {
+        ship_x += 1;
+    }
+    
+    if(key == GLFW_KEY_SPACE && action == GLFW_PRESS) {
+        // for testing
+        std::cout<<"camx: "<<camX<<std::endl;
+        std::cout<<"camY: "<<camY<<std::endl;
+        std::cout<<"cam Z: "<<camZ<<std::endl;
+    }
+        
 }
 
 int main(int argc, char* argv[])
@@ -702,7 +766,7 @@ int main(int argc, char* argv[])
 		glfwPollEvents();
 
 
-		printf("Time taken: %.2fs\n", (double)(clock() - tStart) / CLOCKS_PER_SEC);
+//		printf("Time taken: %.2fs\n", (double)(clock() - tStart) / CLOCKS_PER_SEC);
 	}
 
 	glfwTerminate();
