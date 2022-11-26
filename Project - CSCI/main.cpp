@@ -459,6 +459,8 @@ Shader skyboxShader;
 Shader asteroidShader;
 Shader shipShader;
 
+glm::vec3 camPos;
+
 void initializedGL(void) //run only once
 {
 	if (glewInit() != GLEW_OK) {
@@ -495,14 +497,13 @@ void matrix(std::string object) {
     camZ = 25.0 * cos(glm::radians(pitch)) * sin(glm::radians(yaw));
     
     // for camera:
-    glm::mat4 sTransform = glm::mat4(1.0f);
-    glm::mat4 sRotation = glm::mat4(1.0f);
+    glm::mat4 sTransform;
+    glm::mat4 sRotation;
 
 	if (object == "Spacecraft") {
 		scaling = glm::scale(glm::mat4(1.0f), glm::vec3(0.01f, 0.01f, 0.01f));
         transform = glm::translate(glm::mat4(1.0f), glm::vec3(ship_x, ship_y, ship_z));
         rotation = glm::rotate(glm::mat4(1.0f), -0.07f * camX, glm::vec3(0.0f, 1.0f, 0.0f));
-        tempTrans = glm::translate(glm::mat4(1.0f), glm::vec3(-ship_x, -ship_y, -ship_z));
         sTransform = transform;
         sRotation = rotation;
 	}
@@ -530,25 +531,36 @@ void matrix(std::string object) {
 	}
     
     //???
-    glm::vec4 temp2 = sTransform * glm::vec4(1.0f,1.0f,1.0f,1.0f);
-    glm::vec4 temp3 = sTransform * sRotation * temp2;
+    glm::vec4 temp2 = sTransform * glm::vec4(0,0,0,1.0f);
+    glm::vec4 temp3 = sTransform * sRotation * glm::vec4(0.0f,0.0f,5.0f,1.0f);
+
+    
+    temp3 -= glm::vec4(-5, -5, -5, 0);
 
 
     // projection and view matrices
     projection = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 200.0f);
-//    view = glm::lookAt(
-//        glm::vec3(camX + ship_x, camY + 10 + ship_y, camZ + 5 + ship_z), //cam
-//        glm::vec3(ship_x, ship_y, ship_z), //look
-//        glm::vec3(0, 1, 0)
-//    );
-    
     view = glm::lookAt(
-            glm::vec3(temp2.x - 1, temp2.y + 2, temp2.z - 15), //cam
-            glm::vec3(0,0,0), //look
-            glm::vec3(0, 1, 0)
-        );
-    //???????oops
+        glm::vec3(camX + ship_x, camY + 10 + ship_y, camZ + 5 + ship_z), //cam
+        glm::vec3(temp3), //look
+        glm::vec3(0, 1, 0)
+    );
     
+    camPos = glm::vec3(temp3.x - 1, temp3.y + 2, temp3.z - 15);
+    glm::vec3 rotCam = glm::vec3(sRotation * glm::vec4(camPos, 1.0f));
+    
+//    view = glm::lookAt(
+//            camPos, //cam
+//            glm::vec3(0, 0, 100), //look
+//            glm::vec3(0, 1, 0)
+//        );
+//    view = glm::lookAt(
+//            glm::vec3(0, 0, -30), //cam
+//            glm::vec3(temp3), //look
+//            glm::vec3(0, 1, 0)
+//        );
+    //???????oops
+    // TODO: 
 
 	// Now send it to shader, but if it s a skybox we want to send it to skyboxShader
 	if (object == "Skybox") {
@@ -588,6 +600,11 @@ void paintGL(void)
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	unsigned int slot = 0;
 
+    
+    // diffuse lights location
+    glm::vec3 lightPosition = glm::vec3(50.0f, 20.0f, -20.0f);
+    
+    
 	// spacecraft shader
 
     shipShader.use();
@@ -595,7 +612,9 @@ void paintGL(void)
 	glBindVertexArray(vaoSpacecraft);
 	textureSpacecraft.bind(0);
     shipShader.setInt("textureSpacecraft", 0);
-	shader.setInt("myTextureSampler0", 0);
+	shipShader.setInt("myTextureSampler0", 0);
+    shipShader.setVec3("LightPositionWorld", lightPosition);
+    shipShader.setVec3("eyePosition", camPos);
 	glDrawElements(GL_TRIANGLES, Spacecraft.indices.size(), GL_UNSIGNED_INT, 0);
 
     // main shader
@@ -607,6 +626,9 @@ void paintGL(void)
 	shader.setInt("myTextureSampler0", 0);
 	normalPlanet.bind(1);
 	shader.setInt("myTextureSampler1", 1);
+    shader.setInt("normalMap", 1);
+    shader.setVec3("LightPositionWorld", lightPosition);
+    shader.setVec3("eyePosition", camPos);
 	glDrawElements(GL_TRIANGLES, Planet.indices.size(), GL_UNSIGNED_INT, 0);
 
 
@@ -614,6 +636,9 @@ void paintGL(void)
 	glBindVertexArray(vaoCraft);
 	textureCraft.bind(0);
 	shader.setInt("myTextureSampler0", 0);
+    shader.setInt("normalMap", 0);
+    shader.setVec3("LightPositionWorld", lightPosition);
+    shader.setVec3("eyePosition", camPos);
 	glDrawElements(GL_TRIANGLES, Craft.indices.size(), GL_UNSIGNED_INT, 0);
 
 
@@ -656,6 +681,7 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 float sens = 0.05f;
 void cursor_position_callback(GLFWwindow* window, double x, double y)
 {
+    // original code, click and drag
 	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
 	{
 		yaw += sens * (xpos - x);
