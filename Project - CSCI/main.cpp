@@ -492,16 +492,6 @@ void matrix(std::string object) {
 	glm::mat4 view = glm::mat4(1.0f);
 	float self_rotate = (float) glfwGetTime() * 0.2;
 
-	// Standard stuff for moving camera and projection etc
-    
-//    camX = - 25.0 * sin(cos(glm::radians(yaw)) * cos(glm::radians(pitch)));
-//    camY = - 25.0 * sin(glm::radians(pitch));
-//    camZ = 25.0 * cos(glm::radians(pitch)) * sin(glm::radians(yaw));
-    
-    // TODO: new/delete
-//    camX = - 25.0 * sin(cos(glm::radians(ship_rotate)));
-//    camY = 0;
-//    camZ = 25.0 * sin(glm::radians(ship_rotate));
     
     // for camera:
     glm::mat4 sTransform;
@@ -537,39 +527,16 @@ void matrix(std::string object) {
 		// pass: do nothing, if you want another object, make an else if statement
 	}
     
-    //???
-//    glm::vec4 temp3 = sTransform * sRotation * glm::vec4(0.0f,0.0f,0.0f,1.0f);
-//
     glm::mat4 tempRotate = glm::rotate(glm::mat4(1.0f), glm::radians(ship_rotate * 3.5f), glm::vec3(0, 1, 0));
-    glm::mat4 tempRotate2 = glm::rotate(glm::mat4(1.0f), glm::radians(ship_rotate * 3.5f), glm::vec3(0, 1, 0));
-//    glm::mat4 tempTrans = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -5.0f));
+
     
     camPos2 = glm::vec3(ship_x + 20 * -sin(glm::radians(ship_rotate * 3.5f)), 5.0f, ship_z + 20 * -cos(glm::radians(ship_rotate * 3.5f)));
-    look = glm::vec3(20 * sin(glm::radians(ship_rotate * 3.5f)), 2.0f, 20 * cos(glm::radians(ship_rotate * 3.5f)));
     
     look = glm::vec3(ship_x, 0.0f, ship_z) + glm::vec3(tempRotate * glm::vec4(0.0f, 0.0f, 0.f, 1.0f));
-//    camPos2 = glm::vec3(tempRotate2 * glm::vec4(camPos2,1.0f));
-    
-    
 
-//    temp3 -= glm::vec4(-5, -5, -5, 0);
-    
-//    glm::vec4 camMatrix = sRotation * sTransform * tempTrans * glm::vec4(0.0f,0.0f,0.0f,1.0f);
 
     // projection and view matrices
     projection = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 200.0f);
-    
-//    view = glm::lookAt(
-//        glm::vec3(ship_x, 2 + ship_y, -20 + ship_z), //cam
-//        glm::vec3(look), //look
-//        glm::vec3(0, 1, 0)
-//    );
-    
-//    view = glm::lookAt(
-//        glm::vec3(camPos2), //cam
-//        glm::vec3(look), //look
-//        glm::vec3(0, 1, 0)
-//    );
 
     view = glm::lookAt(
             camPos2, //cam
@@ -617,9 +584,7 @@ void paintGL(void)
 
     
     // diffuse lights location
-    glm::vec3 lightPosition = glm::vec3(50.0f, 5.0f, 0.0f);
-    
-    camPos2 = glm::vec3(0, 5, -20);
+    glm::vec3 lightPosition = glm::vec3(50.0f, 20.0f, 10.0f);
     
 	// spacecraft shader
 
@@ -629,7 +594,7 @@ void paintGL(void)
 	textureSpacecraft.bind(0);
     shipShader.setInt("textureSpacecraft", 0);
 	shipShader.setInt("myTextureSampler0", 0);
-    shipShader.setVec3("LightPositionWorld", lightPosition);
+    shipShader.setVec3("LightPosition", lightPosition);
     shipShader.setVec3("eyePosition", camPos2);
 	glDrawElements(GL_TRIANGLES, Spacecraft.indices.size(), GL_UNSIGNED_INT, 0);
 

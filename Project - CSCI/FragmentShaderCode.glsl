@@ -25,20 +25,21 @@ void main()
     
     // normal map
     vec3 normal;
-    normal = vec3(0.0,0.0,0.0);
     
     // if there is normal map for the object
     if(normalMap != 0){
         normal = texture(myTextureSampler1, UV).rgb;
         // transform
-        normal = (normal * 2.0 - 1.0);
+        normal = normalize((normal * 2.0 - 1.0));
     }
     else{
         normal = normalize(normalWorld);
     }
     
     // diffuse
-    vec3 lightVectorWorld = normalize(lightPositionWorld - vertexPositionWorld);
+    vec3 finalLightPosition = (viewMVP * vec4(lightPositionWorld, 1.0)).xyz;
+    
+    vec3 lightVectorWorld = normalize(vertexPositionWorld - finalLightPosition);
     float brightness = dot(lightVectorWorld, normal);
     vec4 diffuseLight = vec4(brightness * 230/255.0, brightness * 180/255.0, brightness * 60/255.0, 1.0);
     // fix the light color
@@ -52,15 +53,15 @@ void main()
     float s = clamp(dot(reflectedVector, eyeObj), 0, 1);
     // control lobe
     s = pow(s, 5);
-    vec4 specularLight = vec4(s, s* 0 * 245/255.0, s * 0 *240/255.0, 1.0);
+    vec4 specularLight = vec4(s, s * 245/255.0, s * 240/255.0, 1.0);
     
     vec4 factor = vec4(0.5f, 0.5f, 0.5f, 1);
     
     // add together
     
-    Color = factor * clamp(diffuseLight, 0, 1.0)
-    + factor * specularLight
-    + Color;
+    Color = 0.3 * clamp(diffuseLight, 0, 1.0)
+    + vec4(0.3f, 0.3f, 0.3f, 1) * specularLight
+    + factor * Color;
 }
 
 

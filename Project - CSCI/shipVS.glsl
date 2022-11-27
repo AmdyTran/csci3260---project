@@ -11,12 +11,13 @@ uniform mat4 view;
 uniform mat4 transform;
 uniform mat4 rotation;
 uniform mat4 scaling;
-//uniform mat4 invTrans;
-uniform mat4 viewMatrix;
 
 // for lighting
 out vec3 normalWorld;
 out vec3 vertexPositionWorld;
+
+uniform vec3 lightPosition;
+out vec3 lightPositionWorld;
 
 void main()
 {
@@ -26,7 +27,8 @@ void main()
     
     // lighting
     vec4 v = vec4(position,1.0);
-    normalWorld = (view *  transform * rotation * scaling  * vec4(normal, 0)).xyz;
+    normalWorld = (view * transform * rotation * scaling  * vec4(normal, 0)).xyz;
     vertexPositionWorld = (view * transform * rotation * scaling * v).xyz;
+    lightPositionWorld = (view * transform * rotation * vec4(lightPosition, 1.0)).xyz;
 }
 
