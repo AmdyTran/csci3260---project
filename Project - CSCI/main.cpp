@@ -34,6 +34,8 @@ GLint programID;
 // global vars
 float ship_x = 0, ship_y = 0, ship_z = 0;
 float camX, camY, camZ;
+float sens = 0.05f;
+float ship_rotate; //degrees
 
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
 
@@ -459,7 +461,8 @@ Shader skyboxShader;
 Shader asteroidShader;
 Shader shipShader;
 
-glm::vec3 camPos;
+glm::vec3 camPos, camPos2;
+glm::vec3 look;
 
 void initializedGL(void) //run only once
 {
@@ -485,16 +488,20 @@ void matrix(std::string object) {
 	glm::mat4 transform = glm::mat4(1.0f);
 	glm::mat4 projection = glm::mat4(1.0f);
 	glm::mat4 model = glm::mat4(1.0f);
-    glm::mat4 tempTrans = glm::mat4(1.0f);
 
 	glm::mat4 view = glm::mat4(1.0f);
 	float self_rotate = (float) glfwGetTime() * 0.2;
 
 	// Standard stuff for moving camera and projection etc
     
-    camX = - 25.0 * sin(cos(glm::radians(yaw)) * cos(glm::radians(pitch)));
-    camY = - 25.0 * sin(glm::radians(pitch));
-    camZ = 25.0 * cos(glm::radians(pitch)) * sin(glm::radians(yaw));
+//    camX = - 25.0 * sin(cos(glm::radians(yaw)) * cos(glm::radians(pitch)));
+//    camY = - 25.0 * sin(glm::radians(pitch));
+//    camZ = 25.0 * cos(glm::radians(pitch)) * sin(glm::radians(yaw));
+    
+    // TODO: new/delete
+//    camX = - 25.0 * sin(cos(glm::radians(ship_rotate)));
+//    camY = 0;
+//    camZ = 25.0 * sin(glm::radians(ship_rotate));
     
     // for camera:
     glm::mat4 sTransform;
@@ -503,7 +510,7 @@ void matrix(std::string object) {
 	if (object == "Spacecraft") {
 		scaling = glm::scale(glm::mat4(1.0f), glm::vec3(0.01f, 0.01f, 0.01f));
         transform = glm::translate(glm::mat4(1.0f), glm::vec3(ship_x, ship_y, ship_z));
-        rotation = glm::rotate(glm::mat4(1.0f), -0.07f * camX, glm::vec3(0.0f, 1.0f, 0.0f));
+        rotation = glm::rotate(glm::mat4(1.0f), 0.07f * ship_rotate, glm::vec3(0.0f, 1.0f, 0.0f));
         sTransform = transform;
         sRotation = rotation;
 	}
@@ -531,36 +538,45 @@ void matrix(std::string object) {
 	}
     
     //???
-    glm::vec4 temp2 = sTransform * glm::vec4(0,0,0,1.0f);
-    glm::vec4 temp3 = sTransform * sRotation * glm::vec4(0.0f,0.0f,5.0f,1.0f);
-
+//    glm::vec4 temp3 = sTransform * sRotation * glm::vec4(0.0f,0.0f,0.0f,1.0f);
+//
+    glm::mat4 tempRotate = glm::rotate(glm::mat4(1.0f), glm::radians(ship_rotate * 3.5f), glm::vec3(0, 1, 0));
+    glm::mat4 tempRotate2 = glm::rotate(glm::mat4(1.0f), glm::radians(ship_rotate * 3.5f), glm::vec3(0, 1, 0));
+//    glm::mat4 tempTrans = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -5.0f));
     
-    temp3 -= glm::vec4(-5, -5, -5, 0);
+    camPos2 = glm::vec3(ship_x + 20 * -sin(glm::radians(ship_rotate * 3.5f)), 5.0f, ship_z + 20 * -cos(glm::radians(ship_rotate * 3.5f)));
+    look = glm::vec3(20 * sin(glm::radians(ship_rotate * 3.5f)), 2.0f, 20 * cos(glm::radians(ship_rotate * 3.5f)));
+    
+    look = glm::vec3(ship_x, 0.0f, ship_z) + glm::vec3(tempRotate * glm::vec4(0.0f, 0.0f, 0.f, 1.0f));
+//    camPos2 = glm::vec3(tempRotate2 * glm::vec4(camPos2,1.0f));
+    
+    
 
+//    temp3 -= glm::vec4(-5, -5, -5, 0);
+    
+//    glm::vec4 camMatrix = sRotation * sTransform * tempTrans * glm::vec4(0.0f,0.0f,0.0f,1.0f);
 
     // projection and view matrices
     projection = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 200.0f);
+    
+//    view = glm::lookAt(
+//        glm::vec3(ship_x, 2 + ship_y, -20 + ship_z), //cam
+//        glm::vec3(look), //look
+//        glm::vec3(0, 1, 0)
+//    );
+    
+//    view = glm::lookAt(
+//        glm::vec3(camPos2), //cam
+//        glm::vec3(look), //look
+//        glm::vec3(0, 1, 0)
+//    );
+
     view = glm::lookAt(
-        glm::vec3(camX + ship_x, camY + 10 + ship_y, camZ + 5 + ship_z), //cam
-        glm::vec3(temp3), //look
-        glm::vec3(0, 1, 0)
-    );
+            camPos2, //cam
+            look, //look
+            glm::vec3(0, 1, 0)
+        );
     
-    camPos = glm::vec3(temp3.x - 1, temp3.y + 2, temp3.z - 15);
-    glm::vec3 rotCam = glm::vec3(sRotation * glm::vec4(camPos, 1.0f));
-    
-//    view = glm::lookAt(
-//            camPos, //cam
-//            glm::vec3(0, 0, 100), //look
-//            glm::vec3(0, 1, 0)
-//        );
-//    view = glm::lookAt(
-//            glm::vec3(0, 0, -30), //cam
-//            glm::vec3(temp3), //look
-//            glm::vec3(0, 1, 0)
-//        );
-    //???????oops
-    // TODO: 
 
 	// Now send it to shader, but if it s a skybox we want to send it to skyboxShader
 	if (object == "Skybox") {
@@ -579,7 +595,6 @@ void matrix(std::string object) {
         shipShader.setMat4("transform", transform);
         shipShader.setMat4("rotation", rotation);
         shipShader.setMat4("scaling", scaling);
-        shipShader.setMat4("invTrans", tempTrans);
     }
 	else {
 		//// Send the matrices to the shader
@@ -602,8 +617,9 @@ void paintGL(void)
 
     
     // diffuse lights location
-    glm::vec3 lightPosition = glm::vec3(50.0f, 20.0f, -20.0f);
+    glm::vec3 lightPosition = glm::vec3(50.0f, 5.0f, 0.0f);
     
+    camPos2 = glm::vec3(0, 5, -20);
     
 	// spacecraft shader
 
@@ -614,7 +630,7 @@ void paintGL(void)
     shipShader.setInt("textureSpacecraft", 0);
 	shipShader.setInt("myTextureSampler0", 0);
     shipShader.setVec3("LightPositionWorld", lightPosition);
-    shipShader.setVec3("eyePosition", camPos);
+    shipShader.setVec3("eyePosition", camPos2);
 	glDrawElements(GL_TRIANGLES, Spacecraft.indices.size(), GL_UNSIGNED_INT, 0);
 
     // main shader
@@ -628,7 +644,7 @@ void paintGL(void)
 	shader.setInt("myTextureSampler1", 1);
     shader.setInt("normalMap", 1);
     shader.setVec3("LightPositionWorld", lightPosition);
-    shader.setVec3("eyePosition", camPos);
+    shader.setVec3("eyePosition", camPos2);
 	glDrawElements(GL_TRIANGLES, Planet.indices.size(), GL_UNSIGNED_INT, 0);
 
 
@@ -638,7 +654,7 @@ void paintGL(void)
 	shader.setInt("myTextureSampler0", 0);
     shader.setInt("normalMap", 0);
     shader.setVec3("LightPositionWorld", lightPosition);
-    shader.setVec3("eyePosition", camPos);
+    shader.setVec3("eyePosition", camPos2);
 	glDrawElements(GL_TRIANGLES, Craft.indices.size(), GL_UNSIGNED_INT, 0);
 
 
@@ -678,20 +694,27 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 {
 
 }
-float sens = 0.05f;
+
 void cursor_position_callback(GLFWwindow* window, double x, double y)
 {
     // original code, click and drag
-	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
-	{
-		yaw += sens * (xpos - x);
-		pitch += sens * (ypos - y);
-		pitch = glm::clamp(pitch, -89.0f, 89.0f);
-
-	}
-	xpos = x;
-	ypos = y;
-
+//	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
+//	{
+//		yaw += sens * (xpos - x);
+//		pitch += sens * (ypos - y);
+//		pitch = glm::clamp(pitch, -89.0f, 89.0f);
+//
+//	}
+//	xpos = x;
+//	ypos = y;
+    
+    // new: always responsive
+    
+    ship_rotate += sens * (xpos - x);
+    // keep values between -90 and 90
+//    ship_rotate = ship_rotate - 360;
+    ship_rotate = glm::clamp(ship_rotate, -89.0f/3.5f, 89.0f/3.5f);
+    xpos = x;
     
 
 }
@@ -702,29 +725,36 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 }
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
-{	
+{
+    float s = 0.5f;
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
         glfwSetWindowShouldClose(window, true);
     }
     
     if (key == GLFW_KEY_UP && action == GLFW_PRESS) {
-        ship_z += 1;
+//        ship_z += 1;
+        // move ship forwards
+        // div 57.3 to convert to radians
+        ship_z += s * cos(ship_rotate * 3.5f/57.3f);
+        ship_x += s * sin(ship_rotate * 3.5f/57.3f);
     }
     if (key == GLFW_KEY_DOWN && action == GLFW_PRESS) {
-        ship_z -= 1;
+//        ship_z -= 1;
+        // move ship backwards
+        ship_x -= s * sin(ship_rotate * 3.5f/57.3f);
+        ship_z -= s * cos(ship_rotate * 3.5f/57.3f);
     }
     if (key == GLFW_KEY_RIGHT && action == GLFW_PRESS) {
-        ship_x -= 1;
+        //
+        ship_x -= s * cos(ship_rotate * 3.5f/57.3f);
     }
     if (key == GLFW_KEY_LEFT && action == GLFW_PRESS) {
-        ship_x += 1;
+        ship_x += s * cos(ship_rotate * 3.5f/57.3f);
     }
     
     if(key == GLFW_KEY_SPACE && action == GLFW_PRESS) {
         // for testing
-        std::cout<<"camx: "<<camX<<std::endl;
-        std::cout<<"camY: "<<camY<<std::endl;
-        std::cout<<"cam Z: "<<camZ<<std::endl;
+        std::cout<<"ship_rotate "<<ship_rotate<<"\n";
     }
         
 }

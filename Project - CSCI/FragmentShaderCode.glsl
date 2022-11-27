@@ -9,6 +9,7 @@ uniform sampler2D myTextureSampler1;
 // for diffuse lighting
 in vec3 normalWorld; 
 in vec3 vertexPositionWorld;
+in mat4 viewMVP;
 
 uniform int normalMap; // 1 = true, 0 false
 
@@ -30,7 +31,7 @@ void main()
     if(normalMap != 0){
         normal = texture(myTextureSampler1, UV).rgb;
         // transform
-        normal = normalize(normal * 1.2 - 1.0);
+        normal = (normal * 2.0 - 1.0);
     }
     else{
         normal = normalize(normalWorld);
@@ -51,14 +52,14 @@ void main()
     float s = clamp(dot(reflectedVector, eyeObj), 0, 1);
     // control lobe
     s = pow(s, 5);
-    vec4 specularLight = vec4(s, s * 245/255.0, s * 240/255.0, 1.0);
+    vec4 specularLight = vec4(s, s* 0 * 245/255.0, s * 0 *240/255.0, 1.0);
     
     vec4 factor = vec4(0.5f, 0.5f, 0.5f, 1);
     
     // add together
     
     Color = factor * clamp(diffuseLight, 0, 1.0)
-    + vec4(0.2f, 0.2f, 0.2f, 1) * specularLight
+    + factor * specularLight
     + Color;
 }
 

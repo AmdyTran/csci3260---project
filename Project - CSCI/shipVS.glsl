@@ -27,6 +27,6 @@ void main()
     // lighting
     vec4 v = vec4(position,1.0);
     normalWorld = (view *  transform * rotation * scaling  * vec4(normal, 0)).xyz;
-    vertexPositionWorld = (view *  transform * rotation * scaling * v).xyz;
+    vertexPositionWorld = (view * transform * rotation * scaling * v).xyz;
 }
 

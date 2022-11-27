@@ -16,6 +16,7 @@ out vec2 UV;
 // for lighting
 out vec3 normalWorld;
 out vec3 vertexPositionWorld;
+out mat4 viewMVP;
 
 void main()
 {
@@ -23,6 +24,7 @@ void main()
 	gl_Position = projectionMatrix*viewMatrix * MVP *vec4(position, 1.0);
 	UV = vertexUV;
     
+    viewMVP = viewMatrix * MVP;
     
     // lighting
     vec4 v = vec4(position,1.0);

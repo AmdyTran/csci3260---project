@@ -31,7 +31,7 @@ void main()
     // calc brightness
     float s = clamp(dot(reflectedVector, eyeObj), 0, 1);
     // control lobe
-    s = pow(s, 200);
+    s = pow(s, 20);
     vec4 specularLight = vec4(s, s * 245/255.0, s * 200/255.0, 1.0);
     
     vec4 factor = vec4(0.5f, 0.5f, 0.5f, 1);
