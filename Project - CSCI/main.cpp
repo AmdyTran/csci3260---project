@@ -547,6 +547,7 @@ void matrix(std::string object) {
 
 	// Now send it to shader, but if it s a skybox we want to send it to skyboxShader
 	if (object == "Skybox") {
+		view = glm::mat4(glm::mat3(view)); // get rid of last row and column
 		skyboxShader.setMat4("view", view);
 		skyboxShader.setMat4("projection", projection);
 	}
