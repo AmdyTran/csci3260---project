@@ -5,7 +5,7 @@ Student ID:
 Student Names: 
 */
 
-#include<windows.h>
+//#include<windows.h>
 #include <time.h>
 
 #include "Dependencies/glew/glew.h"
@@ -30,6 +30,12 @@ const int SCR_WIDTH = 800;
 const int SCR_HEIGHT = 600;
 
 GLint programID;
+
+// global vars
+float ship_x = 0, ship_y = 0, ship_z = 0;
+float camX, camY, camZ;
+float sens = 0.05f;
+float ship_rotate; //degrees
 
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
 
@@ -160,6 +166,7 @@ Model loadOBJ(const char* objPath)
 
 float yaw = -90.0f;
 float pitch = 17.0f;
+//float pitch = 0.0f;
 
 double xpos = 400, ypos = 300;
 
@@ -452,6 +459,10 @@ void sendDataToOpenGL()
 Shader shader;
 Shader skyboxShader;
 Shader asteroidShader;
+Shader shipShader;
+
+glm::vec3 camPos, camPos2;
+glm::vec3 look;
 
 void initializedGL(void) //run only once
 {
@@ -464,6 +475,7 @@ void initializedGL(void) //run only once
     shader.setupShader("./VertexShaderCode.glsl", "./FragmentShaderCode.glsl");
 	skyboxShader.setupShader("./skyboxVS.glsl", "./skyboxFS.glsl");
 	asteroidShader.setupShader("./asteroidVS.glsl", "./asteroidFS.glsl");
+    shipShader.setupShader("./shipVS.glsl", "./shipFS.glsl");
 
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_TEXTURE_2D);
@@ -480,20 +492,17 @@ void matrix(std::string object) {
 	glm::mat4 view = glm::mat4(1.0f);
 	float self_rotate = (float) glfwGetTime() * 0.2;
 
-	// Standard stuff for moving camera and projection etc
-	float camX = 25.0 * sin(cos(glm::radians(yaw)) * cos(glm::radians(pitch)));
-	float camY = 25.0 * sin(glm::radians(pitch));
-	float camZ = -25.0 * cos(glm::radians(pitch)) * sin(glm::radians(yaw));
-
-	projection = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 200.0f);
-	view = glm::lookAt(
-		glm::vec3(camX, camY, camZ), //cam
-		glm::vec3(0.0f, 0.0f, 0.0f), //look
-		glm::vec3(0, 1, 0)
-	);
+    
+    // for camera:
+    glm::mat4 sTransform;
+    glm::mat4 sRotation;
 
 	if (object == "Spacecraft") {
 		scaling = glm::scale(glm::mat4(1.0f), glm::vec3(0.01f, 0.01f, 0.01f));
+        transform = glm::translate(glm::mat4(1.0f), glm::vec3(ship_x, ship_y, ship_z));
+        rotation = glm::rotate(glm::mat4(1.0f), 0.07f * ship_rotate, glm::vec3(0.0f, 1.0f, 0.0f));
+        sTransform = transform;
+        sRotation = rotation;
 	}
 	else if (object == "Craft") {
 		scaling = glm::scale(glm::mat4(1.0f), glm::vec3(0.5f, 0.5f, 0.5f));
@@ -517,11 +526,28 @@ void matrix(std::string object) {
 	else {
 		// pass: do nothing, if you want another object, make an else if statement
 	}
+    
+    glm::mat4 tempRotate = glm::rotate(glm::mat4(1.0f), glm::radians(ship_rotate * 3.5f), glm::vec3(0, 1, 0));
+
+    
+    camPos2 = glm::vec3(ship_x + 20 * -sin(glm::radians(ship_rotate * 3.5f)), 5.0f, ship_z + 20 * -cos(glm::radians(ship_rotate * 3.5f)));
+    
+    look = glm::vec3(ship_x, 0.0f, ship_z) + glm::vec3(tempRotate * glm::vec4(0.0f, 0.0f, 0.f, 1.0f));
 
 
+    // projection and view matrices
+    projection = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 200.0f);
+
+    view = glm::lookAt(
+            camPos2, //cam
+            look, //look
+            glm::vec3(0, 1, 0)
+        );
+    
 
 	// Now send it to shader, but if it s a skybox we want to send it to skyboxShader
 	if (object == "Skybox") {
+		view = glm::mat4(glm::mat3(view)); // get rid of last row and column
 		skyboxShader.setMat4("view", view);
 		skyboxShader.setMat4("projection", projection);
 	}
@@ -531,6 +557,13 @@ void matrix(std::string object) {
 		asteroidShader.setMat4("transform", transform);
 		asteroidShader.setMat4("rotation", rotation);
 	}
+    else if (object == "Spacecraft"){
+        shipShader.setMat4("view", view);
+        shipShader.setMat4("projection", projection);
+        shipShader.setMat4("transform", transform);
+        shipShader.setMat4("rotation", rotation);
+        shipShader.setMat4("scaling", scaling);
+    }
 	else {
 		//// Send the matrices to the shader
 		shader.setMat4("rotationMatrix", rotation);
@@ -550,22 +583,34 @@ void paintGL(void)
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	unsigned int slot = 0;
 
-	// Now we use main shader
+    
+    // diffuse lights location
+    glm::vec3 lightPosition = glm::vec3(50.0f, 20.0f, 10.0f);
+    
+	// spacecraft shader
 
-	shader.use();
-
+    shipShader.use();
 	matrix("Spacecraft");
 	glBindVertexArray(vaoSpacecraft);
 	textureSpacecraft.bind(0);
-	shader.setInt("myTextureSampler0", 0);
+    shipShader.setInt("textureSpacecraft", 0);
+	shipShader.setInt("myTextureSampler0", 0);
+    shipShader.setVec3("LightPosition", lightPosition);
+    shipShader.setVec3("eyePosition", camPos2);
 	glDrawElements(GL_TRIANGLES, Spacecraft.indices.size(), GL_UNSIGNED_INT, 0);
 
+    // main shader
+    shader.use();
+    
 	matrix("Planet");
 	glBindVertexArray(vaoPlanet);
 	texturePlanet.bind(0);
 	shader.setInt("myTextureSampler0", 0);
 	normalPlanet.bind(1);
 	shader.setInt("myTextureSampler1", 1);
+    shader.setInt("normalMap", 1);
+    shader.setVec3("LightPositionWorld", lightPosition);
+    shader.setVec3("eyePosition", camPos2);
 	glDrawElements(GL_TRIANGLES, Planet.indices.size(), GL_UNSIGNED_INT, 0);
 
 
@@ -573,6 +618,9 @@ void paintGL(void)
 	glBindVertexArray(vaoCraft);
 	textureCraft.bind(0);
 	shader.setInt("myTextureSampler0", 0);
+    shader.setInt("normalMap", 0);
+    shader.setVec3("LightPositionWorld", lightPosition);
+    shader.setVec3("eyePosition", camPos2);
 	glDrawElements(GL_TRIANGLES, Craft.indices.size(), GL_UNSIGNED_INT, 0);
 
 
@@ -612,19 +660,27 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 {
 
 }
-float sens = 0.05f;
+
 void cursor_position_callback(GLFWwindow* window, double x, double y)
 {
-	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
-	{
-		yaw += sens * (xpos - x);
-		pitch += sens * (ypos - y);
-		pitch = glm::clamp(pitch, -89.0f, 89.0f);
-
-	}
-	xpos = x;
-	ypos = y;
-
+    // original code, click and drag
+//	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
+//	{
+//		yaw += sens * (xpos - x);
+//		pitch += sens * (ypos - y);
+//		pitch = glm::clamp(pitch, -89.0f, 89.0f);
+//
+//	}
+//	xpos = x;
+//	ypos = y;
+    
+    // new: always responsive
+    
+    ship_rotate += sens * (xpos - x);
+    // keep values between -90 and 90
+//    ship_rotate = ship_rotate - 360;
+    ship_rotate = glm::clamp(ship_rotate, -89.0f/3.5f, 89.0f/3.5f);
+    xpos = x;
     
 
 }
@@ -635,8 +691,38 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 }
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
-{	
-	
+{
+    float s = 0.5f;
+    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
+        glfwSetWindowShouldClose(window, true);
+    }
+    
+    if (key == GLFW_KEY_UP && action == GLFW_PRESS) {
+//        ship_z += 1;
+        // move ship forwards
+        // div 57.3 to convert to radians
+        ship_z += s * cos(ship_rotate * 3.5f/57.3f);
+        ship_x += s * sin(ship_rotate * 3.5f/57.3f);
+    }
+    if (key == GLFW_KEY_DOWN && action == GLFW_PRESS) {
+//        ship_z -= 1;
+        // move ship backwards
+        ship_x -= s * sin(ship_rotate * 3.5f/57.3f);
+        ship_z -= s * cos(ship_rotate * 3.5f/57.3f);
+    }
+    if (key == GLFW_KEY_RIGHT && action == GLFW_PRESS) {
+        //
+        ship_x -= s * cos(ship_rotate * 3.5f/57.3f);
+    }
+    if (key == GLFW_KEY_LEFT && action == GLFW_PRESS) {
+        ship_x += s * cos(ship_rotate * 3.5f/57.3f);
+    }
+    
+    if(key == GLFW_KEY_SPACE && action == GLFW_PRESS) {
+        // for testing
+        std::cout<<"ship_rotate "<<ship_rotate<<"\n";
+    }
+        
 }
 
 int main(int argc, char* argv[])
@@ -702,7 +788,7 @@ int main(int argc, char* argv[])
 		glfwPollEvents();
 
 
-		printf("Time taken: %.2fs\n", (double)(clock() - tStart) / CLOCKS_PER_SEC);
+//		printf("Time taken: %.2fs\n", (double)(clock() - tStart) / CLOCKS_PER_SEC);
 	}
 
 	glfwTerminate();
