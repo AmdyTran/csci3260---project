@@ -675,23 +675,11 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 
 void cursor_position_callback(GLFWwindow* window, double x, double y)
 {
-    // original code, click and drag
-//    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
-//    {
-//        yaw += sens * (xpos - x);
-//        pitch += sens * (ypos - y);
-//        pitch = glm::clamp(pitch, -89.0f, 89.0f);
-//
-//    }
-//    xpos = x;
-//    ypos = y;
-    
-    // new: always responsive
+    // new: always responsive to mouse position
     
     ship_rotate += sens * (xpos - x);
     // keep values between -90 and 90
-//    ship_rotate = ship_rotate - 360;
-    ship_rotate = glm::clamp(ship_rotate, -89.0f/3.5f, 89.0f/3.5f);
+    ship_rotate = glm::clamp(ship_rotate, -359.0f/3.5f, 359.0f/3.5f);
     xpos = x;
     
 
@@ -710,14 +698,20 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     }
     
     if (key == GLFW_KEY_UP && (action == GLFW_REPEAT || action == GLFW_PRESS)) {
+<<<<<<< Updated upstream
 //        ship_z += 1;
+=======
+>>>>>>> Stashed changes
         // move ship forwards
         // div 57.3 to convert to radians
         ship_z += s * cos(ship_rotate * 3.5f/57.3f);
         ship_x += s * sin(ship_rotate * 3.5f/57.3f);
     }
     if (key == GLFW_KEY_DOWN && (action == GLFW_REPEAT || action == GLFW_PRESS)) {
+<<<<<<< Updated upstream
 //        ship_z -= 1;
+=======
+>>>>>>> Stashed changes
         // move ship backwards
         ship_x -= s * sin(ship_rotate * 3.5f/57.3f);
         ship_z -= s * cos(ship_rotate * 3.5f/57.3f);
