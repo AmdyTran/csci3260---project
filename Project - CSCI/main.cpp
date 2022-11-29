@@ -396,14 +396,25 @@ void loadSkybox() {
 
 
     // Load the texture into earth_faces
+//    std::vector<std::string> earth_faces;
+//    earth_faces.push_back("./instances/skybox/left.bmp");
+//    earth_faces.push_back("./instances/skybox/right.bmp");
+//    earth_faces.push_back("./instances/skybox/bottom.bmp");
+//    earth_faces.push_back("./instances/skybox/top.bmp");
+//    earth_faces.push_back("./instances/skybox/front.bmp");
+//    earth_faces.push_back("./instances/skybox/back.bmp");
+//    textureSkybox.loadSkybox(earth_faces);
+    
+    
     std::vector<std::string> earth_faces;
-    earth_faces.push_back("./instances/skybox/left.bmp");
     earth_faces.push_back("./instances/skybox/right.bmp");
+    earth_faces.push_back("./instances/skybox/left.bmp");
     earth_faces.push_back("./instances/skybox/bottom.bmp");
     earth_faces.push_back("./instances/skybox/top.bmp");
-    earth_faces.push_back("./instances/skybox/front.bmp");
     earth_faces.push_back("./instances/skybox/back.bmp");
+    earth_faces.push_back("./instances/skybox/front.bmp");
     textureSkybox.loadSkybox(earth_faces);
+    
 }
 
 // Make sure to match this with the shader! Else run into issues.
@@ -518,7 +529,7 @@ void matrix(std::string object) {
         // can reuse projection matrix
     }
     else if (object == "Asteroids") {
-        transform = glm::translate(glm::mat4(1.0f), glm::vec3(3.0f, 0.0f, 100.0f));
+        //transform = glm::translate(glm::mat4(1.0f), glm::vec3(3.0f, 0.0f, 100.0f));
         rotation = glm::rotate(glm::mat4(1.0f), self_rotate, glm::vec3(0.0f, 1.0f, 0.0f));
     }
 
@@ -535,7 +546,7 @@ void matrix(std::string object) {
 
 
     // projection and view matrices
-    projection = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 200.0f);
+    projection = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 400.0f);
 
     view = glm::lookAt(
             camPos2, //cam
@@ -635,6 +646,8 @@ void paintGL(void)
     
     textureRock.bind(0);
     asteroidShader.setInt("textureAsteroid", 0);
+    asteroidShader.setVec3("LightPosition", lightPosition);
+    asteroidShader.setVec3("eyePosition", camPos2);
     glDrawElementsInstanced(GL_TRIANGLES, Rock.indices.size(), GL_UNSIGNED_INT, 0, amountAsteroids);
 
 
@@ -696,31 +709,27 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
         glfwSetWindowShouldClose(window, true);
     }
     
-    if (key == GLFW_KEY_UP && action == GLFW_PRESS) {
+    if (key == GLFW_KEY_UP && (action == GLFW_REPEAT || action == GLFW_PRESS)) {
 //        ship_z += 1;
         // move ship forwards
         // div 57.3 to convert to radians
         ship_z += s * cos(ship_rotate * 3.5f/57.3f);
         ship_x += s * sin(ship_rotate * 3.5f/57.3f);
     }
-    if (key == GLFW_KEY_DOWN && action == GLFW_PRESS) {
+    if (key == GLFW_KEY_DOWN && (action == GLFW_REPEAT || action == GLFW_PRESS)) {
 //        ship_z -= 1;
         // move ship backwards
         ship_x -= s * sin(ship_rotate * 3.5f/57.3f);
         ship_z -= s * cos(ship_rotate * 3.5f/57.3f);
     }
-    if (key == GLFW_KEY_RIGHT && action == GLFW_PRESS) {
+    if (key == GLFW_KEY_RIGHT && (action == GLFW_REPEAT || action == GLFW_PRESS)) {
         //
         ship_x -= s * cos(ship_rotate * 3.5f/57.3f);
     }
-    if (key == GLFW_KEY_LEFT && action == GLFW_PRESS) {
+    if (key == GLFW_KEY_LEFT && (action == GLFW_REPEAT || action == GLFW_PRESS)) {
         ship_x += s * cos(ship_rotate * 3.5f/57.3f);
     }
     
-    if(key == GLFW_KEY_SPACE && action == GLFW_PRESS) {
-        // for testing
-        std::cout<<"ship_rotate "<<ship_rotate<<"\n";
-    }
         
 }
 
@@ -764,8 +773,6 @@ int main(int argc, char* argv[])
     
     // load textures once
 
-    std::cout << Rock.indices.size() << std::endl; // 576
-    std::cout << Rock.vertices.size() << std::endl; // 165
 
     // Variables to create periodic event for FPS displaying
     double prevTime = 0.0;
