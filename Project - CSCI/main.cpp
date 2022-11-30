@@ -471,7 +471,7 @@ Shader skyboxShader;
 Shader asteroidShader;
 Shader shipShader;
 
-glm::vec3 camPos, camPos2;
+glm::vec3 camPos;
 glm::vec3 look;
 
 void initializedGL(void) //run only once
@@ -540,7 +540,7 @@ void matrix(std::string object) {
     glm::mat4 tempRotate = glm::rotate(glm::mat4(1.0f), glm::radians(ship_rotate * 3.5f), glm::vec3(0, 1, 0));
 
     
-    camPos2 = glm::vec3(ship_x + 20 * -sin(glm::radians(ship_rotate * 3.5f)), 10.0f, ship_z + 20 * -cos(glm::radians(ship_rotate * 3.5f)));
+    camPos = glm::vec3(ship_x + 20 * -sin(glm::radians(ship_rotate * 3.5f)), 10.0f, ship_z + 20 * -cos(glm::radians(ship_rotate * 3.5f)));
     
     look = glm::vec3(ship_x, 5.0f, ship_z) + glm::vec3(tempRotate * glm::vec4(0.0f, 0.0f, 0.f, 1.0f));
 
@@ -549,7 +549,7 @@ void matrix(std::string object) {
     projection = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 400.0f);
 
     view = glm::lookAt(
-            camPos2, //cam
+            camPos, //cam
             look, //look
             glm::vec3(0, 1, 0)
         );
@@ -595,7 +595,7 @@ void paintGL(void)
 
     
     // diffuse lights location
-    glm::vec3 lightPosition = glm::vec3(50.0f, 20.0f, 10.0f);
+    glm::vec3 lightPosition = glm::vec3(20.0f, 20.0f, 50.0f);
     
     // spacecraft shader
 
@@ -606,7 +606,7 @@ void paintGL(void)
     shipShader.setInt("textureSpacecraft", 0);
     shipShader.setInt("myTextureSampler0", 0);
     shipShader.setVec3("LightPosition", lightPosition);
-    shipShader.setVec3("eyePosition", camPos2);
+    shipShader.setVec3("eyePosition", camPos);
     glDrawElements(GL_TRIANGLES, Spacecraft.indices.size(), GL_UNSIGNED_INT, 0);
 
     // main shader
@@ -620,7 +620,7 @@ void paintGL(void)
     shader.setInt("myTextureSampler1", 1);
     shader.setInt("normalMap", 1);
     shader.setVec3("LightPositionWorld", lightPosition);
-    shader.setVec3("eyePosition", camPos2);
+    shader.setVec3("eyePosition", camPos);
     glDrawElements(GL_TRIANGLES, Planet.indices.size(), GL_UNSIGNED_INT, 0);
 
 
@@ -630,7 +630,7 @@ void paintGL(void)
     shader.setInt("myTextureSampler0", 0);
     shader.setInt("normalMap", 0);
     shader.setVec3("LightPositionWorld", lightPosition);
-    shader.setVec3("eyePosition", camPos2);
+    shader.setVec3("eyePosition", camPos);
     glDrawElements(GL_TRIANGLES, Craft.indices.size(), GL_UNSIGNED_INT, 0);
 
 
@@ -647,7 +647,7 @@ void paintGL(void)
     textureRock.bind(0);
     asteroidShader.setInt("textureAsteroid", 0);
     asteroidShader.setVec3("LightPosition", lightPosition);
-    asteroidShader.setVec3("eyePosition", camPos2);
+    asteroidShader.setVec3("eyePosition", camPos);
     glDrawElementsInstanced(GL_TRIANGLES, Rock.indices.size(), GL_UNSIGNED_INT, 0, amountAsteroids);
 
 
@@ -679,7 +679,7 @@ void cursor_position_callback(GLFWwindow* window, double x, double y)
     
     ship_rotate += sens * (xpos - x);
     // keep values between -90 and 90
-    ship_rotate = glm::clamp(ship_rotate, -359.0f/3.5f, 359.0f/3.5f);
+    ship_rotate = glm::clamp(ship_rotate, -179.0f/3.5f, 179.0f/3.5f);
     xpos = x;
     
 
@@ -698,20 +698,12 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     }
     
     if (key == GLFW_KEY_UP && (action == GLFW_REPEAT || action == GLFW_PRESS)) {
-<<<<<<< Updated upstream
-//        ship_z += 1;
-=======
->>>>>>> Stashed changes
         // move ship forwards
         // div 57.3 to convert to radians
         ship_z += s * cos(ship_rotate * 3.5f/57.3f);
         ship_x += s * sin(ship_rotate * 3.5f/57.3f);
     }
     if (key == GLFW_KEY_DOWN && (action == GLFW_REPEAT || action == GLFW_PRESS)) {
-<<<<<<< Updated upstream
-//        ship_z -= 1;
-=======
->>>>>>> Stashed changes
         // move ship backwards
         ship_x -= s * sin(ship_rotate * 3.5f/57.3f);
         ship_z -= s * cos(ship_rotate * 3.5f/57.3f);

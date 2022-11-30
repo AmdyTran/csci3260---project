@@ -18,7 +18,7 @@ void main()
     Color = texture(textureSpacecraft, UV);
     
     // diffuse
-    vec3 lightVectorWorld = normalize(vertexPositionWorld - lightPositionWorld);
+    vec3 lightVectorWorld = normalize(lightPositionWorld - vertexPositionWorld);
     float brightness = dot(lightVectorWorld, normalize(normalWorld));
     vec4 diffuseLight = vec4(brightness * 230/255.0, brightness * 180/255.0, brightness * 60/255.0, 1.0);
     // fix the light color
@@ -27,7 +27,7 @@ void main()
     // calc direction
     vec3 reflectedVector = reflect(-lightVectorWorld, normalWorld);
     //calc direction from eye to obj
-    vec3 eyeObj = normalize(vertexPositionWorld - eyePosition);
+    vec3 eyeObj = normalize(eyePosition - vertexPositionWorld);
     // calc brightness
     float s = clamp(dot(reflectedVector, eyeObj), 0, 1);
     // control lobe
@@ -38,7 +38,7 @@ void main()
     
     // add together
     
-    Color = factor * clamp(diffuseLight, 0, 1.0)
+    Color = vec4(0.7f, 0.7f, 0.7f, 1) * clamp(diffuseLight, 0, 1.0)
     + vec4(0.3f, 0.3f, 0.3f, 1) * specularLight
     + factor * Color;
     
