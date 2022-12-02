@@ -210,7 +210,7 @@ Texture textureSpacecraft;
 
 void loadSpacecraft() {
     Spacecraft = loadOBJ("./instances/object/spacecraft.obj");
-    textureSpacecraft.setupTexture("./instances/texture/spacecraftTexture.bmp");
+    textureSpacecraft.setupTexture("./instances/texture/spacecraftTexture2.bmp");
 
     // VAO
     glGenVertexArrays(1, &vaoSpacecraft);
@@ -596,6 +596,7 @@ void paintGL(void)
     
     // diffuse lights location
     glm::vec3 lightPosition = glm::vec3(20.0f, 20.0f, 50.0f);
+    // flashlight position same as eyePosition
     
     // spacecraft shader
 
