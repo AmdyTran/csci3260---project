@@ -10,12 +10,21 @@ uniform sampler2D textureAsteroid;
 in vec3 normalWorld;
 in vec3 vertexPositionWorld;
 in mat4 viewMVP;
+in mat4 viewM;
+
+// lighting
+uniform int spotOn;
 
 uniform vec3 lightPositionWorld;
 uniform vec3 eyePosition;
+uniform vec3 spotDirection;
+uniform float innerCutoff;
+uniform float outerCutoff;
 
 void main()
-{    
+{
+    float theta;
+    
     Color = texture(textureAsteroid, UV);
     
     vec3 normal = normalize(normalWorld);
@@ -46,4 +55,16 @@ void main()
     Color = 0.3 * clamp(diffuseLight, 0, 1.0)
     + vec4(0.3f, 0.3f, 0.3f, 1) * specularLight
     + factor * Color;
+    
+    // spotlight
+    
+    if (spotOn == 1) {
+        vec3 spotVec = vec3(viewM * vec4(eyePosition, 1.0)) - vertexPositionWorld;
+        theta = dot(normalize(spotVec), normalize(spotDirection));
+        
+        float intensity = clamp((theta - outerCutoff) / (innerCutoff - outerCutoff), 0.0, 0.5);
+        
+        Color += vec4(intensity/1.6, intensity/1.7, intensity * 1.5, 1) * clamp(diffuseLight, 0, 1.0)
+        + vec4(intensity/1.2, intensity/1.2, intensity * 1.5, 1) * specularLight;
+    }
 }

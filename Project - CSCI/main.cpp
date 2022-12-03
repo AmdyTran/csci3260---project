@@ -488,7 +488,6 @@ void matrix(std::string object) {
     glm::mat4 scaling = glm::mat4(1.0f);
     glm::mat4 transform = glm::mat4(1.0f);
     glm::mat4 projection = glm::mat4(1.0f);
-    glm::mat4 model = glm::mat4(1.0f);
 
     glm::mat4 view = glm::mat4(1.0f);
     float self_rotate = (float) glfwGetTime() * 0.2;
@@ -592,7 +591,7 @@ void paintGL(void)
     glm::vec3 spotDir = glm::vec3(0, 0, 1);
     // adjust angles
     float cutoff1 = glm::cos(glm::radians(1.5f));
-    float cutoff2 =glm::cos(glm::radians(3.0f));
+    float cutoff2 = glm::cos(glm::radians(3.0f));
     
     // spacecraft shader
 

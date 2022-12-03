@@ -16,17 +16,18 @@ uniform mat4 model[500];
 out vec3 normalWorld;
 out vec3 vertexPositionWorld;
 out mat4 viewMVP;
+out mat4 viewM;
 
 void main()
 {
-    gl_Position = projection * view * transform * rotation * model[gl_InstanceID] * vec4(position, 1.0); 
+    gl_Position = projection * view * transform * rotation * model[gl_InstanceID] * vec4(position, 1.0);
     UV = vertexUV;
     
     viewMVP = view * transform * rotation * model[gl_InstanceID];
+    viewM = view;
         
     // lighting
     vec4 v = vec4(position,1.0);
     normalWorld = (viewMVP  * vec4(normal, 0)).xyz;
     vertexPositionWorld = (viewMVP * v).xyz;
 }
-
