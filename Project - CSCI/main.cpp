@@ -362,6 +362,38 @@ void loadMoon() {
     glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));
 }
 
+Model Cloud;
+GLuint vaoCloud, vboCloud, eboCloud;
+Texture textureCloud;
+
+void loadCloud() {
+    Cloud = loadOBJ("./instances/cloud.obj");
+    textureCloud.setupTexture("./instances/moon.jpg");
+
+    // VAO
+    glGenVertexArrays(1, &vaoCloud);
+    glBindVertexArray(vaoCloud);
+
+    // VBO
+    glGenBuffers(1, &vboCloud);
+    glBindBuffer(GL_ARRAY_BUFFER, vboCloud);
+    glBufferData(GL_ARRAY_BUFFER, Cloud.vertices.size() * sizeof(Vertex), &Cloud.vertices[0], GL_STATIC_DRAW);
+
+    // EBO
+    glGenBuffers(1, &eboCloud);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, eboCloud);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, Cloud.indices.size() * sizeof(unsigned int), &Cloud.indices[0], GL_STATIC_DRAW);
+
+    // send to shader: position, uv, normals
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, uv));
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));
+}
+
+
 GLuint vaoSkybox, vboSkybox;
 Texture textureSkybox, texture2Skybox;
 
@@ -505,6 +537,7 @@ void sendDataToOpenGL()
     loadCraft();
     loadMoon();
     loadSkybox();
+    loadCloud();
     asteroidGenerator();
 }
 
@@ -592,6 +625,10 @@ void matrix(std::string object) {
     else if (object == "Asteroids") {
         transform = glm::translate(glm::mat4(1.0f), glm::vec3(3.0f, 0.0f, 100.0f));
         rotation = glm::rotate(glm::mat4(1.0f), self_rotate, glm::vec3(0.0f, 1.0f, 0.0f));
+    }
+    else if (object == "Cloud") {
+        transform = glm::translate(glm::mat4(1.0f), glm::vec3(3.0f, 0.0f, 100.0f));
+        transform = glm::translate(glm::mat4(1.0f), glm::vec3(70.0f, 0.0f, 100.0f));
     }
 
     else {
@@ -702,6 +739,15 @@ void paintGL(void)
     shader.setVec3("LightPositionWorld", lightPosition);
     shader.setVec3("eyePosition", camPos2);
     glDrawElements(GL_TRIANGLES, Moon.indices.size(), GL_UNSIGNED_INT, 0);
+
+    matrix("Cloud");
+    glBindVertexArray(vaoCloud);
+    textureCloud.bind(0);
+    shader.setInt("myTextureSampler0", 0);
+    shader.setInt("normalMap", 0);
+    shader.setVec3("LightPositionWorld", lightPosition);
+    shader.setVec3("eyePosition", camPos2);
+    glDrawElements(GL_TRIANGLES, Cloud.indices.size(), GL_UNSIGNED_INT, 0);
 
     // Now: draw asteroids, we use the asteroid shader for it to keep code seperate.
     asteroidShader.use();
