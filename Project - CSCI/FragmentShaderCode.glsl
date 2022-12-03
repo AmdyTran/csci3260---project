@@ -1,21 +1,24 @@
-#version 330 core
+#version 430
 
 in vec2 UV;
 
 uniform sampler2D myTextureSampler0;
 uniform sampler2D myTextureSampler1;
 
-
-// for diffuse lighting
+// for lighting
 in vec3 normalWorld; 
 in vec3 vertexPositionWorld;
 in mat4 viewMVP;
+in mat4 view;
 
 uniform int normalMap; // 1 = true, 0 false
+uniform int spotOn;
 
 uniform vec3 lightPositionWorld;
 uniform vec3 eyePosition;
-
+uniform vec3 spotDirection;
+uniform float innerCutoff;
+uniform float outerCutoff;
 
 out vec4 Color;
 
@@ -25,6 +28,7 @@ void main()
     
     // normal map
     vec3 normal;
+    float theta;
     
     // if there is normal map for the object
     if(normalMap != 0){
@@ -62,7 +66,17 @@ void main()
     Color = 0.3 * clamp(diffuseLight, 0, 1.0)
     + vec4(0.3f, 0.3f, 0.3f, 1) * specularLight
     + factor * Color;
+    
+    
+    // spotlight
+    
+    if (spotOn == 1) {
+        vec3 spotVec = vec3(view * vec4(eyePosition, 1.0)) - vertexPositionWorld;
+        theta = dot(normalize(spotVec), normalize(spotDirection));
+        
+        float intensity = clamp((theta - outerCutoff) / (innerCutoff - outerCutoff), 0.0, 0.5);
+        
+        Color += vec4(intensity/1.6, intensity/1.7, intensity * 1.5, 1) * clamp(diffuseLight, 0, 1.0)
+        + vec4(intensity/1.2, intensity/1.2, intensity * 1.5, 1) * specularLight;
+       }
 }
-
-
-// TODO: need to account for planet rotation, right now is bound to eye angle only

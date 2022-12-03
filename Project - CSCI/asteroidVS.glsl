@@ -1,4 +1,4 @@
-#version 330 core
+#version 430
 
 layout(location=0) in vec3 position;
 layout(location=1) in vec2 vertexUV;
@@ -16,6 +16,7 @@ uniform mat4 model[500];
 out vec3 normalWorld;
 out vec3 vertexPositionWorld;
 out mat4 viewMVP;
+out mat4 viewM;
 
 void main()
 {
@@ -23,6 +24,7 @@ void main()
     UV = vertexUV;
     
     viewMVP = view * transform * rotation * model[gl_InstanceID];
+    viewM = view;
         
     // lighting
     vec4 v = vec4(position,1.0);

@@ -35,6 +35,7 @@ float ship_x = 0, ship_y = 0, ship_z = 0;
 float camX, camY, camZ;
 float sens = 0.05f;
 float ship_rotate; //degrees
+int spotOn = 0; // spotlight on/off
 
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
 
@@ -207,10 +208,12 @@ bool checkStatus(
 Model Spacecraft;
 GLuint vaoSpacecraft, vboSpacecraft, eboSpacecraft;
 Texture textureSpacecraft;
+Texture textureSpacecraftOn;
 
 void loadSpacecraft() {
     Spacecraft = loadOBJ("./instances/object/spacecraft.obj");
     textureSpacecraft.setupTexture("./instances/texture/spacecraftTexture.bmp");
+    textureSpacecraftOn.setupTexture("./instances/texture/spacecraftTexture2.bmp");
 
     // VAO
     glGenVertexArrays(1, &vaoSpacecraft);
@@ -547,7 +550,7 @@ Shader skyboxShader;
 Shader asteroidShader;
 Shader shipShader;
 
-glm::vec3 camPos, camPos2;
+glm::vec3 camPos;
 glm::vec3 look;
 
 void initializedGL(void) //run only once
@@ -584,7 +587,6 @@ void matrix(std::string object) {
     glm::mat4 scaling = glm::mat4(1.0f);
     glm::mat4 transform = glm::mat4(1.0f);
     glm::mat4 projection = glm::mat4(1.0f);
-    glm::mat4 model = glm::mat4(1.0f);
 
     glm::mat4 view = glm::mat4(1.0f);
     float self_rotate = (float) glfwGetTime() * 0.2;
@@ -638,7 +640,7 @@ void matrix(std::string object) {
     glm::mat4 tempRotate = glm::rotate(glm::mat4(1.0f), glm::radians(ship_rotate * 3.5f), glm::vec3(0, 1, 0));
 
     
-    camPos2 = glm::vec3(ship_x + 20 * -sin(glm::radians(ship_rotate * 3.5f)), 10.0f, ship_z + 20 * -cos(glm::radians(ship_rotate * 3.5f)));
+    camPos = glm::vec3(ship_x + 20 * -sin(glm::radians(ship_rotate * 3.5f)), 10.0f, ship_z + 20 * -cos(glm::radians(ship_rotate * 3.5f)));
     
     look = glm::vec3(ship_x, 5.0f, ship_z) + glm::vec3(tempRotate * glm::vec4(0.0f, 0.0f, 0.f, 1.0f));
 
@@ -646,7 +648,7 @@ void matrix(std::string object) {
     // projection and view matrices
     projection = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 400.0f);
     view = glm::lookAt(
-            camPos2, //cam
+            camPos, //cam
             look, //look
             glm::vec3(0, 1, 0)
         );
@@ -692,17 +694,28 @@ void paintGL(void)
 
     
     // diffuse lights location
-    glm::vec3 lightPosition = glm::vec3(50.0f, 20.0f, 10.0f);
+    glm::vec3 lightPosition = glm::vec3(20.0f, 20.0f, 50.0f);
+    // flashlight position same as eyePosition
+    // flashlight spotlight direction:
+    glm::vec3 spotDir = glm::vec3(0, 0, 1);
+    // adjust angles
+    float cutoff1 = glm::cos(glm::radians(1.5f));
+    float cutoff2 = glm::cos(glm::radians(3.0f));
     
     // spacecraft shader
     shipShader.use();
     matrix("Spacecraft");
     glBindVertexArray(vaoSpacecraft);
+    if (spotOn == 0) {
     textureSpacecraft.bind(0);
+    }
+    else {
+        textureSpacecraftOn.bind(0);
+    }
     shipShader.setInt("textureSpacecraft", 0);
     shipShader.setInt("myTextureSampler0", 0);
     shipShader.setVec3("LightPosition", lightPosition);
-    shipShader.setVec3("eyePosition", camPos2);
+    shipShader.setVec3("eyePosition", camPos);
     glDrawElements(GL_TRIANGLES, Spacecraft.indices.size(), GL_UNSIGNED_INT, 0);
 
     // main shader
@@ -716,7 +729,11 @@ void paintGL(void)
     shader.setInt("myTextureSampler1", 1);
     shader.setInt("normalMap", 1);
     shader.setVec3("LightPositionWorld", lightPosition);
-    shader.setVec3("eyePosition", camPos2);
+    shader.setVec3("eyePosition", camPos);
+    shader.setVec3("spotDirection", spotDir);
+    shader.setInt("spotOn", spotOn);
+    shader.setFloat("innerCutoff", cutoff1);
+    shader.setFloat("outerCutoff", cutoff2);
     glDrawElements(GL_TRIANGLES, Planet.indices.size(), GL_UNSIGNED_INT, 0);
 
     // before sending stuff to matrix we check how far it is 
@@ -728,7 +745,11 @@ void paintGL(void)
     shader.setInt("myTextureSampler0", 0);
     shader.setInt("normalMap", 0);
     shader.setVec3("LightPositionWorld", lightPosition);
-    shader.setVec3("eyePosition", camPos2);
+    shader.setVec3("eyePosition", camPos);
+    shader.setVec3("spotDirection", spotDir);
+    shader.setInt("spotOn", spotOn);
+    shader.setFloat("innerCutoff", cutoff1);
+    shader.setFloat("outerCutoff", cutoff2);
     glDrawElements(GL_TRIANGLES, Craft.indices.size(), GL_UNSIGNED_INT, 0);
 
     matrix("Moon");
@@ -737,7 +758,7 @@ void paintGL(void)
     shader.setInt("myTextureSampler0", 0);
     shader.setInt("normalMap", 0);
     shader.setVec3("LightPositionWorld", lightPosition);
-    shader.setVec3("eyePosition", camPos2);
+    shader.setVec3("eyePosition", camPos);
     glDrawElements(GL_TRIANGLES, Moon.indices.size(), GL_UNSIGNED_INT, 0);
 
     matrix("Cloud");
@@ -746,7 +767,7 @@ void paintGL(void)
     shader.setInt("myTextureSampler0", 0);
     shader.setInt("normalMap", 0);
     shader.setVec3("LightPositionWorld", lightPosition);
-    shader.setVec3("eyePosition", camPos2);
+    shader.setVec3("eyePosition", camPos);
     glDrawElements(GL_TRIANGLES, Cloud.indices.size(), GL_UNSIGNED_INT, 0);
 
     // Now: draw asteroids, we use the asteroid shader for it to keep code seperate.
@@ -762,7 +783,7 @@ void paintGL(void)
     textureRock.bind(0);
     asteroidShader.setInt("textureAsteroid", 0);
     asteroidShader.setVec3("LightPosition", lightPosition);
-    asteroidShader.setVec3("eyePosition", camPos2);
+    asteroidShader.setVec3("eyePosition", camPos);
     glDrawElementsInstanced(GL_TRIANGLES, Rock.indices.size(), GL_UNSIGNED_INT, 0, amountAsteroids);
 
 
@@ -795,22 +816,11 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 
 void cursor_position_callback(GLFWwindow* window, double x, double y)
 {
-    // original code, click and drag
-//    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
-//    {
-//        yaw += sens * (xpos - x);
-//        pitch += sens * (ypos - y);
-//        pitch = glm::clamp(pitch, -89.0f, 89.0f);
-//
-//    }
-//    xpos = x;
-//    ypos = y;
-    
-    // new: always responsive
+    // new: always responsive to mouse position
     
     ship_rotate += sens * (xpos - x);
     // keep values between -90 and 90
-//    ship_rotate = ship_rotate - 360;
+    ship_rotate = glm::clamp(ship_rotate, -179.0f/3.5f, 179.0f/3.5f);
     xpos = x;
     
 
@@ -829,14 +839,12 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     }
     
     if (key == GLFW_KEY_UP && (action == GLFW_REPEAT || action == GLFW_PRESS)) {
-//        ship_z += 1;
         // move ship forwards
         // div 57.3 to convert to radians
         ship_z += s * cos(ship_rotate * 3.5f/57.3f);
         ship_x += s * sin(ship_rotate * 3.5f/57.3f);
     }
     if (key == GLFW_KEY_DOWN && (action == GLFW_REPEAT || action == GLFW_PRESS)) {
-//        ship_z -= 1;
         // move ship backwards
         ship_x -= s * sin(ship_rotate * 3.5f/57.3f);
         ship_z -= s * cos(ship_rotate * 3.5f/57.3f);
@@ -849,6 +857,9 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
         ship_x += s * cos(ship_rotate * 3.5f/57.3f);
     }
     
+    if (key == GLFW_KEY_Q && action == GLFW_PRESS) {
+        spotOn = (spotOn + 1) % 2;
+    }
         
 }
 
