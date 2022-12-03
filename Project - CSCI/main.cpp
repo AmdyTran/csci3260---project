@@ -504,8 +504,8 @@ void asteroidGenerator() {
         float z = cos(angle) * radius + displacement;
         model = glm::translate(model, glm::vec3(x, y, z));
 
-        // 2. scale: scale between 0.05 and 0.25f
-        float scale = (rand() % 20) / 100.0f + 0.05;
+        // 2. scale: scale between 0.30 and 0.50f
+        float scale = (rand() % 20) / 100.0f + 0.30;
         model = glm::scale(model, glm::vec3(scale));
 
         // 3. rotation: add random rotation around a (semi)randomly picked rotation axis vector
@@ -629,8 +629,6 @@ void matrix(std::string object) {
         rotation = glm::rotate(glm::mat4(1.0f), self_rotate, glm::vec3(0.0f, 1.0f, 0.0f));
     }
     else if (object == "Cloud") {
-        transform = glm::translate(glm::mat4(1.0f), glm::vec3(3.0f, 0.0f, 100.0f));
-        transform = glm::translate(glm::mat4(1.0f), glm::vec3(70.0f, 0.0f, 100.0f));
     }
 
     else {
@@ -850,7 +848,6 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
         ship_z -= s * cos(ship_rotate * 3.5f/57.3f);
     }
     if (key == GLFW_KEY_RIGHT && (action == GLFW_REPEAT || action == GLFW_PRESS)) {
-        //
         ship_x -= s * cos(ship_rotate * 3.5f/57.3f);
     }
     if (key == GLFW_KEY_LEFT && (action == GLFW_REPEAT || action == GLFW_PRESS)) {
