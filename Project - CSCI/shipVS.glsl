@@ -13,10 +13,9 @@ uniform mat4 rotation;
 uniform mat4 scaling;
 
 // for lighting
+uniform vec3 lightPosition;
 out vec3 normalWorld;
 out vec3 vertexPositionWorld;
-
-uniform vec3 lightPosition;
 out vec3 lightPositionWorld;
 
 void main()
@@ -25,7 +24,6 @@ void main()
 
     UV = vertexUV;
     
-    // lighting
     vec4 v = vec4(position,1.0);
     normalWorld = (transform * rotation * scaling  * vec4(normal, 0)).xyz;
     vertexPositionWorld = (transform * rotation * scaling * v).xyz;
