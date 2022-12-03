@@ -238,11 +238,12 @@ void loadSpacecraft() {
 
 Model Craft;
 GLuint vaoCraft, vboCraft, eboCraft;
-Texture textureCraft;
+Texture textureCraft, textureCraft1;
 
 void loadCraft() {
     Craft = loadOBJ("./instances/object/craft2.obj");
-    textureCraft.setupTexture("./instances/texture/vehicleTexture.bmp");
+    textureCraft.setupTexture("./instances/texture/vehicleTexture1.jpg");
+    textureCraft1.setupTexture("./instances/texture/vehicleTexture.bmp");
 
     // VAO
     glGenVertexArrays(1, &vaoCraft);
@@ -330,9 +331,39 @@ void loadRock() {
     glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));
 }
 
+Model Moon;
+GLuint vaoMoon, vboMoon, eboMoon;
+Texture textureMoon;
+
+void loadMoon() {
+    Moon = loadOBJ("./instances/moon2.obj");
+    textureMoon.setupTexture("./instances/moon.jpg");
+
+    // VAO
+    glGenVertexArrays(1, &vaoMoon);
+    glBindVertexArray(vaoMoon);
+
+    // VBO
+    glGenBuffers(1, &vboMoon);
+    glBindBuffer(GL_ARRAY_BUFFER, vboMoon);
+    glBufferData(GL_ARRAY_BUFFER, Moon.vertices.size() * sizeof(Vertex), &Moon.vertices[0], GL_STATIC_DRAW);
+
+    // EBO
+    glGenBuffers(1, &eboMoon);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, eboMoon);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, Moon.indices.size() * sizeof(unsigned int), &Moon.indices[0], GL_STATIC_DRAW);
+
+    // send to shader: position, uv, normals
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, uv));
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));
+}
 
 GLuint vaoSkybox, vboSkybox;
-Texture textureSkybox;
+Texture textureSkybox, texture2Skybox;
 
 
 // we don't need an ebo, since we are not drawing by indexing
@@ -394,17 +425,6 @@ void loadSkybox() {
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
     glBindVertexArray(0);
 
-
-    // Load the texture into earth_faces
-//    std::vector<std::string> earth_faces;
-//    earth_faces.push_back("./instances/skybox/left.bmp");
-//    earth_faces.push_back("./instances/skybox/right.bmp");
-//    earth_faces.push_back("./instances/skybox/bottom.bmp");
-//    earth_faces.push_back("./instances/skybox/top.bmp");
-//    earth_faces.push_back("./instances/skybox/front.bmp");
-//    earth_faces.push_back("./instances/skybox/back.bmp");
-//    textureSkybox.loadSkybox(earth_faces);
-    
     
     std::vector<std::string> earth_faces;
     earth_faces.push_back("./instances/skybox/right.bmp");
@@ -412,9 +432,18 @@ void loadSkybox() {
     earth_faces.push_back("./instances/skybox/bottom.bmp");
     earth_faces.push_back("./instances/skybox/top.bmp");
     earth_faces.push_back("./instances/skybox/back.bmp");
-    earth_faces.push_back("./instances/skybox/front.bmp");
+    earth_faces.push_back("./instances/skybox/front0.bmp");
     textureSkybox.loadSkybox(earth_faces);
+
+    std::vector<std::string> secondSkybox;
+    secondSkybox.push_back("./instances/skybox/right.bmp");
+    secondSkybox.push_back("./instances/skybox/left.bmp");
+    secondSkybox.push_back("./instances/skybox/bottom.bmp");
+    secondSkybox.push_back("./instances/skybox/top.bmp");
+    secondSkybox.push_back("./instances/skybox/back1.bmp");
+    secondSkybox.push_back("./instances/skybox/front1.bmp");
     
+    texture2Skybox.loadSkybox(secondSkybox);
 }
 
 // Make sure to match this with the shader! Else run into issues.
@@ -422,7 +451,7 @@ unsigned int amountAsteroids = 500;
 glm::mat4* modelMatrices = new glm::mat4[amountAsteroids];
 
 float offset = 2.5f;
-float radius = 10.0;
+float radius = 30.0;
 float startingTime = glfwGetTime();
 
 void asteroidGenerator() {
@@ -453,6 +482,19 @@ void asteroidGenerator() {
     }
 }
 
+unsigned int amountCrafts = 10;
+glm::mat4* craftMatrices = new glm::mat4[amountCrafts];
+
+
+void spacecraftGenerator() {
+    srand(startingTime * 2); // get different seed than before
+    for (int i = 0; i < amountCrafts; i++) {
+        glm::mat4 model = glm::mat4(1.0f);
+
+        // We do a translation first
+
+    }
+}
 
 void sendDataToOpenGL()
 {
@@ -461,6 +503,7 @@ void sendDataToOpenGL()
     loadRock();
     loadPlanet();
     loadCraft();
+    loadMoon();
     loadSkybox();
     asteroidGenerator();
 }
@@ -492,6 +535,17 @@ void initializedGL(void) //run only once
     glEnable(GL_CULL_FACE);
 }
 
+bool collisionDetection(glm::vec3 vecA, glm::vec3 vecB, int threshhold) {
+    if (distance(vecA, vecB) <= threshhold) return true;
+    return false;
+}
+
+glm::vec3 spacecraftCoord;
+glm::vec3 craftCoord = glm::vec3(-4.0f, 0.0f, 25.0f);
+
+bool swapTexture_craft = false; // for changing textures
+
+
 void matrix(std::string object) {
     glm::mat4 rotation = glm::mat4(1.0f);
     glm::mat4 scaling = glm::mat4(1.0f);
@@ -503,33 +557,40 @@ void matrix(std::string object) {
     float self_rotate = (float) glfwGetTime() * 0.2;
 
     
-    // for camera:
-    glm::mat4 sTransform;
-    glm::mat4 sRotation;
 
     if (object == "Spacecraft") {
+        spacecraftCoord = glm::vec3(ship_x, ship_y, ship_z);
         scaling = glm::scale(glm::mat4(1.0f), glm::vec3(0.01f, 0.01f, 0.01f));
-        transform = glm::translate(glm::mat4(1.0f), glm::vec3(ship_x, ship_y, ship_z));
+        transform = glm::translate(glm::mat4(1.0f), spacecraftCoord);
         rotation = glm::rotate(glm::mat4(1.0f), 0.07f * ship_rotate, glm::vec3(0.0f, 1.0f, 0.0f));
-        sTransform = transform;
-        sRotation = rotation;
     }
     else if (object == "Craft") {
+        if (collisionDetection(craftCoord, spacecraftCoord, 20.0f)) swapTexture_craft = !swapTexture_craft;
+        while (collisionDetection(craftCoord, spacecraftCoord, 20.0f)) {
+            int x_jump = rand() % 20 - 12;                           // have the spacecraft jump randomly, but away from spacecraft
+            int z_jump = rand() % 15 - 5;
+            craftCoord += glm::vec3(x_jump, 0.0f, z_jump);
+        }
         scaling = glm::scale(glm::mat4(1.0f), glm::vec3(0.5f, 0.5f, 0.5f));
-        transform = glm::translate(glm::mat4(1.0f), glm::vec3(3.0f, 0.0f, 15.0f));
+        transform = glm::translate(glm::mat4(1.0f), craftCoord);
         rotation = glm::rotate(glm::mat4(1.0f), self_rotate, glm::vec3(0.0f, 1.0f, 0.0f));
+        
     }
     else if (object == "Planet") {
         scaling = glm::scale(glm::mat4(1.0f), glm::vec3(5.0f, 5.0f, 5.0f));
         transform = glm::translate(glm::mat4(1.0f), glm::vec3(3.0f, 0.0f, 100.0f));
         rotation = glm::rotate(glm::mat4(1.0f), self_rotate, glm::vec3(0.0f, 1.0f, 0.0f));
     }
+    else if (object == "Moon") {
+        scaling = glm::scale(glm::mat4(1.0f), glm::vec3(5.0f, 5.0f, 5.0f));
+        transform = glm::translate(glm::mat4(1.0f), glm::vec3(70.0f, 0.0f, 100.0f));
+    }
     else if (object == "Skybox") {
         view = glm::mat4(glm::mat3(view)); // get rid of last row and column
         // can reuse projection matrix
     }
     else if (object == "Asteroids") {
-        //transform = glm::translate(glm::mat4(1.0f), glm::vec3(3.0f, 0.0f, 100.0f));
+        transform = glm::translate(glm::mat4(1.0f), glm::vec3(3.0f, 0.0f, 100.0f));
         rotation = glm::rotate(glm::mat4(1.0f), self_rotate, glm::vec3(0.0f, 1.0f, 0.0f));
     }
 
@@ -547,7 +608,6 @@ void matrix(std::string object) {
 
     // projection and view matrices
     projection = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 400.0f);
-
     view = glm::lookAt(
             camPos2, //cam
             look, //look
@@ -598,7 +658,6 @@ void paintGL(void)
     glm::vec3 lightPosition = glm::vec3(50.0f, 20.0f, 10.0f);
     
     // spacecraft shader
-
     shipShader.use();
     matrix("Spacecraft");
     glBindVertexArray(vaoSpacecraft);
@@ -623,16 +682,26 @@ void paintGL(void)
     shader.setVec3("eyePosition", camPos2);
     glDrawElements(GL_TRIANGLES, Planet.indices.size(), GL_UNSIGNED_INT, 0);
 
-
+    // before sending stuff to matrix we check how far it is 
     matrix("Craft");
     glBindVertexArray(vaoCraft);
-    textureCraft.bind(0);
+    // if we get close, we want spacecraft to change colour
+    if (swapTexture_craft) textureCraft.bind(0);
+    else textureCraft1.bind(0);
     shader.setInt("myTextureSampler0", 0);
     shader.setInt("normalMap", 0);
     shader.setVec3("LightPositionWorld", lightPosition);
     shader.setVec3("eyePosition", camPos2);
     glDrawElements(GL_TRIANGLES, Craft.indices.size(), GL_UNSIGNED_INT, 0);
 
+    matrix("Moon");
+    glBindVertexArray(vaoMoon);
+    textureMoon.bind(0);
+    shader.setInt("myTextureSampler0", 0);
+    shader.setInt("normalMap", 0);
+    shader.setVec3("LightPositionWorld", lightPosition);
+    shader.setVec3("eyePosition", camPos2);
+    glDrawElements(GL_TRIANGLES, Moon.indices.size(), GL_UNSIGNED_INT, 0);
 
     // Now: draw asteroids, we use the asteroid shader for it to keep code seperate.
     asteroidShader.use();
@@ -658,6 +727,11 @@ void paintGL(void)
     matrix("Skybox");
     textureSkybox.bindSkybox(2);
     skyboxShader.setInt("skybox", 2);
+    texture2Skybox.bindSkybox(3);
+    skyboxShader.setInt("skybox2", 3);
+    // TODO: fix it, that it goes back dark, instead of jumping
+    float timeElapsed = (int) glfwGetTime() % 100;
+    skyboxShader.setFloat("intensity", timeElapsed / 100.0f);
     glDrawArrays(GL_TRIANGLES, 0, 36);
     glDepthFunc(GL_LESS);
 }
@@ -691,7 +765,6 @@ void cursor_position_callback(GLFWwindow* window, double x, double y)
     ship_rotate += sens * (xpos - x);
     // keep values between -90 and 90
 //    ship_rotate = ship_rotate - 360;
-    ship_rotate = glm::clamp(ship_rotate, -89.0f/3.5f, 89.0f/3.5f);
     xpos = x;
     
 
@@ -764,22 +837,12 @@ int main(int argc, char* argv[])
 
     /*register callback functions*/
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-    glfwSetKeyCallback(window, key_callback);                                                                  //
+    glfwSetKeyCallback(window, key_callback);                                                                  
     glfwSetScrollCallback(window, scroll_callback);
     glfwSetCursorPosCallback(window, cursor_position_callback);
     glfwSetMouseButtonCallback(window, mouse_button_callback);
 
     initializedGL();
-    
-    // load textures once
-
-
-    // Variables to create periodic event for FPS displaying
-    double prevTime = 0.0;
-    double crntTime = 0.0;
-    double timeDiff;
-    // Keeps track of the amount of frames in timeDiff
-    unsigned int counter = 0;
 
     while (!glfwWindowShouldClose(window)) {
 
@@ -793,8 +856,6 @@ int main(int argc, char* argv[])
         /* Poll for and process events */
         glfwPollEvents();
 
-
-//        printf("Time taken: %.2fs\n", (double)(clock() - tStart) / CLOCKS_PER_SEC);
     }
 
     glfwTerminate();
