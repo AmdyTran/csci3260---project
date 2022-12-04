@@ -207,13 +207,15 @@ bool checkStatus(
 
 Model Spacecraft;
 GLuint vaoSpacecraft, vboSpacecraft, eboSpacecraft;
-Texture textureSpacecraft;
-Texture textureSpacecraftOn;
+Texture textureSpacecraft, textureSpacecraftR;
+Texture textureSpacecraftOn, textureSpacecraftOnR;
 
 void loadSpacecraft() {
     Spacecraft = loadOBJ("./instances/object/spacecraft.obj");
     textureSpacecraft.setupTexture("./instances/texture/spacecraftTexture.bmp");
     textureSpacecraftOn.setupTexture("./instances/texture/spacecraftTexture2.bmp");
+    textureSpacecraftR.setupTexture("./instances/texture/spacecraftTextureR.bmp");
+    textureSpacecraftOnR.setupTexture("./instances/texture/spacecraftTexture2R.bmp");
 
     // VAO
     glGenVertexArrays(1, &vaoSpacecraft);
@@ -540,7 +542,6 @@ void sendDataToOpenGL()
     loadCraft();
     loadMoon();
     loadSkybox();
-    loadCloud();
     asteroidGenerator();
 }
 
@@ -576,11 +577,14 @@ bool collisionDetection(glm::vec3 vecA, glm::vec3 vecB, int threshhold) {
     return false;
 }
 
-glm::vec3 spacecraftCoord;
+glm::vec3 spacecraftCoord = glm::vec3(ship_x, ship_y, ship_z);
 glm::vec3 craftCoord = glm::vec3(-4.0f, 0.0f, 25.0f);
 
 bool swapTexture_craft = false; // for changing textures
 
+glm::vec3 planetCoord = glm::vec3(3.0f, 0.0f, 100.0f);
+
+glm::vec3 moonCoord = glm::vec3(70.0f, 0.0f, 100.0f);
 
 void matrix(std::string object) {
     glm::mat4 rotation = glm::mat4(1.0f);
@@ -613,12 +617,12 @@ void matrix(std::string object) {
     }
     else if (object == "Planet") {
         scaling = glm::scale(glm::mat4(1.0f), glm::vec3(5.0f, 5.0f, 5.0f));
-        transform = glm::translate(glm::mat4(1.0f), glm::vec3(3.0f, 0.0f, 100.0f));
+        transform = glm::translate(glm::mat4(1.0f), planetCoord);
         rotation = glm::rotate(glm::mat4(1.0f), self_rotate, glm::vec3(0.0f, 1.0f, 0.0f));
     }
     else if (object == "Moon") {
         scaling = glm::scale(glm::mat4(1.0f), glm::vec3(5.0f, 5.0f, 5.0f));
-        transform = glm::translate(glm::mat4(1.0f), glm::vec3(70.0f, 0.0f, 100.0f));
+        transform = glm::translate(glm::mat4(1.0f), moonCoord);
     }
     else if (object == "Skybox") {
         view = glm::mat4(glm::mat3(view)); // get rid of last row and column
@@ -627,8 +631,6 @@ void matrix(std::string object) {
     else if (object == "Asteroids") {
         transform = glm::translate(glm::mat4(1.0f), glm::vec3(3.0f, 0.0f, 100.0f));
         rotation = glm::rotate(glm::mat4(1.0f), self_rotate, glm::vec3(0.0f, 1.0f, 0.0f));
-    }
-    else if (object == "Cloud") {
     }
 
     else {
@@ -639,7 +641,6 @@ void matrix(std::string object) {
 
     
     camPos = glm::vec3(ship_x + 20 * -sin(glm::radians(ship_rotate * 3.5f)), 10.0f, ship_z + 20 * -cos(glm::radians(ship_rotate * 3.5f)));
-    
     look = glm::vec3(ship_x, 5.0f, ship_z) + glm::vec3(tempRotate * glm::vec4(0.0f, 0.0f, 0.f, 1.0f));
 
 
@@ -704,11 +705,13 @@ void paintGL(void)
     shipShader.use();
     matrix("Spacecraft");
     glBindVertexArray(vaoSpacecraft);
-    if (spotOn == 0) {
-    textureSpacecraft.bind(0);
+    if (spotOn) {
+        if (collisionDetection(spacecraftCoord, planetCoord, 50) || collisionDetection(spacecraftCoord, moonCoord, 10)) textureSpacecraftOnR.bind(0);
+        else textureSpacecraftOn.bind(0);
     }
     else {
-        textureSpacecraftOn.bind(0);
+        if (collisionDetection(spacecraftCoord, planetCoord, 50) || collisionDetection(spacecraftCoord, moonCoord, 10)) textureSpacecraftR.bind(0);
+        else textureSpacecraft.bind(0);
     }
     shipShader.setInt("textureSpacecraft", 0);
     shipShader.setInt("myTextureSampler0", 0);
@@ -750,6 +753,7 @@ void paintGL(void)
     shader.setFloat("outerCutoff", cutoff2);
     glDrawElements(GL_TRIANGLES, Craft.indices.size(), GL_UNSIGNED_INT, 0);
 
+
     matrix("Moon");
     glBindVertexArray(vaoMoon);
     textureMoon.bind(0);
@@ -758,15 +762,6 @@ void paintGL(void)
     shader.setVec3("LightPositionWorld", lightPosition);
     shader.setVec3("eyePosition", camPos);
     glDrawElements(GL_TRIANGLES, Moon.indices.size(), GL_UNSIGNED_INT, 0);
-
-    matrix("Cloud");
-    glBindVertexArray(vaoCloud);
-    textureCloud.bind(0);
-    shader.setInt("myTextureSampler0", 0);
-    shader.setInt("normalMap", 0);
-    shader.setVec3("LightPositionWorld", lightPosition);
-    shader.setVec3("eyePosition", camPos);
-    glDrawElements(GL_TRIANGLES, Cloud.indices.size(), GL_UNSIGNED_INT, 0);
 
     // Now: draw asteroids, we use the asteroid shader for it to keep code seperate.
     asteroidShader.use();
@@ -841,21 +836,35 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
         // div 57.3 to convert to radians
         ship_z += s * cos(ship_rotate * 3.5f/57.3f);
         ship_x += s * sin(ship_rotate * 3.5f/57.3f);
+        if (collisionDetection(glm::vec3(ship_x, 0 ,ship_z), planetCoord, 40.0f) || collisionDetection(spacecraftCoord, moonCoord, 10)) {
+            ship_z -= s * cos(ship_rotate * 3.5f / 57.3f);
+            ship_x -= s * sin(ship_rotate * 3.5f / 57.3f);
+        }
     }
     if (key == GLFW_KEY_DOWN && (action == GLFW_REPEAT || action == GLFW_PRESS)) {
         // move ship backwards
         ship_x -= s * sin(ship_rotate * 3.5f/57.3f);
         ship_z -= s * cos(ship_rotate * 3.5f/57.3f);
+        if (collisionDetection(glm::vec3(ship_x, 0, ship_z), planetCoord, 40.0f) || collisionDetection(spacecraftCoord, moonCoord, 10)) {
+            ship_z += s * cos(ship_rotate * 3.5f / 57.3f);
+            ship_x += s * sin(ship_rotate * 3.5f / 57.3f);
+        }
     }
     if (key == GLFW_KEY_RIGHT && (action == GLFW_REPEAT || action == GLFW_PRESS)) {
         ship_x -= s * cos(ship_rotate * 3.5f/57.3f);
+        if (collisionDetection(glm::vec3(ship_x, 0, ship_z), planetCoord, 40.0f) || collisionDetection(spacecraftCoord, moonCoord, 10)) {
+            ship_z += s * cos(ship_rotate * 3.5f / 57.3f);
+        }
     }
     if (key == GLFW_KEY_LEFT && (action == GLFW_REPEAT || action == GLFW_PRESS)) {
         ship_x += s * cos(ship_rotate * 3.5f/57.3f);
+        if (collisionDetection(glm::vec3(ship_x, 0, ship_z), planetCoord, 40.0f) || collisionDetection(spacecraftCoord, moonCoord, 10)) {
+            ship_x -= s * sin(ship_rotate * 3.5f / 57.3f);
+        }
     }
     
     if (key == GLFW_KEY_Q && action == GLFW_PRESS) {
-        spotOn = (spotOn + 1) % 2;
+        spotOn = (1 - spotOn);
     }
         
 }
